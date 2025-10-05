@@ -135,11 +135,25 @@ MODEL_NAME=phi3:mini
 ```
 
 **Get Nextcloud Bot Token:**
-1. Log in to Nextcloud as admin
-2. Go to Settings → Administration → Talk
-3. Navigate to "Bots" section
-4. Click "Add Bot"
-5. Copy the generated token
+Step 1: Create a Bot User Account
+
+Go to User Management
+
+Settings → Users (you need admin access)
+Click "New user"
+Create account:
+
+
+
+     Username: minecraft-bot
+     Display name: Minecraft Helper
+     Email: (optional)
+
+Log in as the bot user and generate an app password:
+
+Go to Settings → Security → Devices & sessions
+Create new app password named "Talk Bot"
+Copy this password - this is your bot token!
 
 ---
 
