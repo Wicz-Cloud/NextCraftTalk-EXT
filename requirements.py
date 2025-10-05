@@ -1,0 +1,26 @@
+# Core Dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+python-dotenv==1.0.0
+
+# Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Vector Database & Embeddings
+chromadb==0.4.22
+sentence-transformers==2.3.1
+
+# Machine Learning
+torch==2.1.2
+transformers==4.37.2
+numpy==1.24.4
+
+# Database
+sqlite3  # Built-in, no install needed
+
+# Utilities
+python-multipart==0.0.6
+aiofiles==23.2.1

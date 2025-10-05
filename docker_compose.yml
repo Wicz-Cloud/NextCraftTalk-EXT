@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Ollama - Local LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: minecraft_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - minecraft_bot_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # For CPU-only, remove the deploy section above
+
+  # Minecraft Bot Service
+  minecraft_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: minecraft_bot
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./wiki_data:/app/wiki_data
+      - ./chroma_db:/app/chroma_db
+      - ./recipe_cache.db:/app/recipe_cache.db
+      - ./.env:/app/.env
+    environment:
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
+      - NEXTCLOUD_BOT_TOKEN=${NEXTCLOUD_BOT_TOKEN}
+      - OLLAMA_URL=http://ollama:11434
+      - MODEL_NAME=${MODEL_NAME:-phi3:mini}
+      - BOT_NAME=${BOT_NAME:-MinecraftBot}
+    depends_on:
+      - ollama
+    networks:
+      - minecraft_bot_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy (optional, for HTTPS)
+  nginx:
+    image: nginx:alpine
+    container_name: minecraft_bot_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - minecraft_bot
+    networks:
+      - minecraft_bot_network
+    restart: unless-stopped
+    # Comment out if not using reverse proxy
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  minecraft_bot_network:
+    driver: bridge
