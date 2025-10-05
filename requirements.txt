@@ -14,7 +14,7 @@ chromadb==0.5.5
 sentence-transformers==3.1.0
 
 # Machine Learning
-torch==2.4.1
+torch==2.5.0
 transformers==4.45.0
 numpy==1.26.4
 
