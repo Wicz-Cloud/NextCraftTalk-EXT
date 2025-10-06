@@ -43,7 +43,7 @@ class MinecraftWikiScraper:
     def get_category_pages(self, category: str) -> List[str]:
         """Fetch all pages in a given Minecraft Wiki category with pagination."""
         pages = []
-        url = f"{self.base_url}/w/api.php"
+        url = f"{self.base_url}/api.php"
         params = {
             "action": "query",
             "list": "categorymembers",
@@ -75,7 +75,7 @@ class MinecraftWikiScraper:
     # ---------------------------------------------------------------------
     def fetch_page_content(self, title: str) -> Optional[Dict]:
         """Fetch and clean a wiki page using the MediaWiki API."""
-        url = f"{self.base_url}/w/api.php"
+        url = f"{self.base_url}/api.php"
         params = {
             "action": "parse",
             "page": title,
