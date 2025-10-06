@@ -95,37 +95,44 @@ class RecipeCache:
         
         return None
     
-    def cache_answer(self, query: str, answer: str, sources: List[Dict] = None):
-        """Store answer in cache"""
-        query_hash = self._hash_query(query)
-        sources_json = json.dumps(sources) if sources else None
-        
-        cursor = self.conn.cursor()
-        
-        try:
-            cursor.execute("""
-                INSERT INTO qa_cache (query_hash, query_text, answer, sources)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(query_hash) DO UPDATE SET
-                    answer = excluded.answer,
-                    sources = excluded.sources
-            """, (query_hash, query, answer, sources_json))
-            
-            self.conn.commit()
-        except Exception as e:
-            print(f"Error caching answer: {e}")
+def cache_answer(self, query: str, answer: str, sources: List[Dict] = None):
+    """Store answer in cache"""
+    query_hash = self._hash_query(query)
+    sources_json = json.dumps(sources) if sources else None
     
+    cursor = self.conn.cursor()
+    
+    try:
+        # Log the schema to verify
+        cursor.execute("PRAGMA table_info(qa_cache)")
+        schema = cursor.fetchall()
+        print("qa_cache schema:", schema)
+        
+        # Log the query details
+        print(f"Executing INSERT for query_hash: {query_hash}, query: {query}")
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO qa_cache (query_hash, query_text, answer, sources)
+            VALUES (?, ?, ?, ?)
+        """, (query_hash, query, answer, sources_json))
+        
+        self.conn.commit()
+        print("✓ Successfully cached answer")
+    except Exception as e:
+        print(f"Error caching answer: {e}")
+        print(f"Query hash: {query_hash}")
+        print(f"Query: {query}")
+        print(f"Answer: {answer[:100]}...")
+        print(f"Sources: {sources_json}")
+        raise
     def add_popular_recipe(self, item_name: str, recipe_data: Dict, category: str = "crafting"):
         """Add a popular recipe for instant lookup"""
         cursor = self.conn.cursor()
         
         try:
             cursor.execute("""
-                INSERT INTO popular_recipes (item_name, recipe_data, category)
+                INSERT OR REPLACE INTO popular_recipes (item_name, recipe_data, category)
                 VALUES (?, ?, ?)
-                ON CONFLICT(item_name) DO UPDATE SET
-                    recipe_data = excluded.recipe_data,
-                    category = excluded.category
             """, (item_name.lower(), json.dumps(recipe_data), category))
             
             self.conn.commit()

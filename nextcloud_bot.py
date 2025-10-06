@@ -10,6 +10,7 @@ import requests
 import os
 from dotenv import load_dotenv
 import logging
+from pathlib import Path
 
 from vector_db import MinecraftVectorDB
 from rag_pipeline import MinecraftRAGPipeline
@@ -22,12 +23,22 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Add file logging
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+file_handler = logging.FileHandler(log_dir / "nextcloud_bot.log")
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
 # Initialize FastAPI
 app = FastAPI(title="Minecraft Wiki Bot for Nextcloud Talk")
 
 # Configuration
 NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL", "https://your-nextcloud.com")
 NEXTCLOUD_TOKEN = os.getenv("NEXTCLOUD_BOT_TOKEN", "")
+SHARED_SECRET = os.getenv("SHARED_SECRET", "")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL_NAME = os.getenv("MODEL_NAME", "phi3:mini")
 BOT_NAME = os.getenv("BOT_NAME", "MinecraftBot")
@@ -196,10 +207,16 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
     """
     Handle incoming webhooks from Nextcloud Talk
     """
+    logger.info("Webhook endpoint hit!")
     try:
         # Parse webhook data
         data = await request.json()
         logger.info(f"Received webhook: {data}")
+        
+        # Verify shared secret
+        if SHARED_SECRET and data.get('shared_secret') != SHARED_SECRET:
+            logger.warning(f"Invalid shared secret received: {data.get('shared_secret')}")
+            raise HTTPException(status_code=401, detail="Invalid shared secret")
         
         # Validate required fields
         if 'message' not in data or 'token' not in data:
@@ -211,9 +228,9 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         actor_name = data.get('actor_displayname', 'User')
         
         # Check if we should respond
-        if not should_respond(message, actor_id):
-            logger.info("Ignoring message (not relevant)")
-            return {"status": "ignored"}
+       # if not should_respond(message, actor_id):
+       #     logger.info("Ignoring message (not relevant)")
+       #     return {"status": "ignored"}
         
         # Clean message
         query = clean_message(message)
@@ -224,15 +241,15 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
             cache.log_query(query)
         
         # Check cache first
-        cached_result = None
-        if cache:
-            cached_result = cache.get_cached_answer(query)
+        #cached_result = None
+        #if cache:
+        #    cached_result = cache.get_cached_answer(query)
         
-        if cached_result:
-            logger.info("✓ Cache hit!")
-            response_text = format_answer_markdown(cached_result)
-            background_tasks.add_task(send_to_nextcloud, token, response_text)
-            return {"status": "success", "cached": True}
+       # if cached_result:
+       #     logger.info("✓ Cache hit!")
+       #     response_text = format_answer_markdown(cached_result)
+       #     background_tasks.add_task(send_to_nextcloud, token, response_text)
+       #     return {"status": "success", "cached": True}
         
         # Process with RAG pipeline
         logger.info("Querying RAG pipeline...")
