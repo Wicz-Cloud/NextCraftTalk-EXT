@@ -3,6 +3,9 @@ Vector Database Setup with ChromaDB
 Handles embedding generation and similarity search
 """
 
+import os
+os.environ["CHROMA_TELEMETRY_ENABLED"] = "false"
+
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer

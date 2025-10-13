@@ -11,6 +11,9 @@ import os
 from dotenv import load_dotenv
 import logging
 from pathlib import Path
+import hmac
+import hashlib
+import json
 
 from vector_db import MinecraftVectorDB
 from rag_pipeline import MinecraftRAGPipeline
@@ -213,10 +216,23 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         data = await request.json()
         logger.info(f"Received webhook: {data}")
         
-        # Verify shared secret
-        if SHARED_SECRET and data.get('shared_secret') != SHARED_SECRET:
-            logger.warning(f"Invalid shared secret received: {data.get('shared_secret')}")
-            raise HTTPException(status_code=401, detail="Invalid shared secret")
+        # Verify HMAC signature
+        if SHARED_SECRET:
+            random_header = request.headers.get('X-Nextcloud-Talk-Random', '')
+            signature_header = request.headers.get('X-Nextcloud-Talk-Signature', '').lower()
+            
+            # Compute HMAC
+            body = json.dumps(data, separators=(',', ':'))  # Nextcloud uses compact JSON
+            message = (random_header + body).encode()
+            expected_signature = hmac.new(
+                SHARED_SECRET.encode(),
+                message,
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(expected_signature, signature_header):
+                logger.warning("HMAC signature mismatch")
+                raise HTTPException(status_code=401, detail="Invalid signature")
         
         # Validate required fields
         if 'message' not in data or 'token' not in data:
@@ -241,15 +257,15 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
             cache.log_query(query)
         
         # Check cache first
-        #cached_result = None
-        #if cache:
-        #    cached_result = cache.get_cached_answer(query)
+        cached_result = None
+        if cache:
+            cached_result = cache.get_cached_answer(query)
         
-       # if cached_result:
-       #     logger.info("✓ Cache hit!")
-       #     response_text = format_answer_markdown(cached_result)
-       #     background_tasks.add_task(send_to_nextcloud, token, response_text)
-       #     return {"status": "success", "cached": True}
+        if cached_result:
+            logger.info("✓ Cache hit!")
+            response_text = format_answer_markdown(cached_result)
+            background_tasks.add_task(send_to_nextcloud, token, response_text)
+            return {"status": "success", "cached": True}
         
         # Process with RAG pipeline
         logger.info("Querying RAG pipeline...")

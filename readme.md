@@ -35,7 +35,7 @@ User Query → Nextcloud Talk → Webhook → FastAPI Bot
 - **Raspberry Pi**: Works on Pi 5 with 8GB RAM
 
 ### Software
-- Python 3.11+
+- Python 3.12+ (3.13 recommended for latest packages)
 - Docker & Docker Compose (optional but recommended)
 - Ollama (for local LLM)
 - Nextcloud instance with Talk app
@@ -61,6 +61,7 @@ Edit `.env` with your Nextcloud credentials:
 ```env
 NEXTCLOUD_URL=https://your-nextcloud.com
 NEXTCLOUD_BOT_TOKEN=your-bot-token-here
+SHARED_SECRET=your-shared-secret-here
 BOT_NAME=MinecraftBot
 MODEL_NAME=phi3:mini
 ```
@@ -78,6 +79,9 @@ docker-compose logs -f minecraft_bot
 
 # Check health
 curl http://localhost:8000/health
+
+# View logs
+tail -f logs/nextcloud_bot.log
 ```
 
 **Option B: Local Development**

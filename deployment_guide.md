@@ -25,7 +25,7 @@ This guide walks you through deploying the Minecraft Wiki Bot from scratch to pr
 
 - **Software**:
   - Ubuntu 22.04+ / Debian 11+ / Raspberry Pi OS
-  - Python 3.11 or higher
+  - Python 3.12 or higher (3.13 recommended)
   - Docker 24+ and Docker Compose (for Docker deployment)
   - Git
 
