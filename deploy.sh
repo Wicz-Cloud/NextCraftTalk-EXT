@@ -86,7 +86,7 @@ deploy_docker() {
     
     # Check health
     for i in {1..30}; do
-        if curl -f http://localhost:8000/health &> /dev/null; then
+        if curl -f http://localhost:${BOT_PORT}/health &> /dev/null; then
             echo -e "${GREEN}✓ Bot is healthy!${NC}"
             break
         fi
@@ -116,7 +116,7 @@ deploy_local() {
     pip install -q -r requirements.txt
     
     # Check if Ollama is running
-    if ! curl -f http://localhost:11434/api/tags &> /dev/null; then
+    if ! curl -f http://localhost:${OLLAMA_PORT}/api/tags &> /dev/null; then
         echo -e "${YELLOW}⚠ Ollama not detected. Starting Ollama...${NC}"
         ollama serve &
         OLLAMA_PID=$!
@@ -132,7 +132,7 @@ deploy_local() {
     sleep 5
     
     # Check health
-    if curl -f http://localhost:8000/health &> /dev/null; then
+    if curl -f http://localhost:${BOT_PORT}/health &> /dev/null; then
         echo -e "${GREEN}✓ Bot started successfully (PID: $BOT_PID)${NC}"
     else
         echo -e "${RED}✗ Bot failed to start. Check logs/bot.log${NC}"
@@ -227,7 +227,7 @@ show_status() {
     if [ "$DEPLOY_TYPE" = "docker" ]; then
         docker-compose ps
         echo -e "\n${BLUE}Health Check:${NC}"
-        curl -s http://localhost:8000/health | python -m json.tool || echo "Service not responding"
+        curl -s http://localhost:${BOT_PORT}/health | python -m json.tool || echo "Service not responding"
     else
         if [ -f "bot.pid" ]; then
             PID=$(cat bot.pid)
@@ -240,7 +240,7 @@ show_status() {
     fi
     
     echo -e "\n${BLUE}Statistics:${NC}"
-    curl -s http://localhost:8000/stats | python -m json.tool || echo "Stats not available"
+    curl -s http://localhost:${BOT_PORT}/stats | python -m json.tool || echo "Stats not available"
 }
 
 # Main deployment flow
@@ -296,7 +296,7 @@ main() {
     echo -e "${GREEN}Deployment Complete!${NC}"
     echo -e "${GREEN}================================================${NC}"
     echo -e "\nNext steps:"
-    echo "1. Test the bot: curl http://localhost:8000/health"
+    echo "1. Test the bot: curl http://localhost:${BOT_PORT}/health"
     echo "2. Configure Nextcloud webhook: $NEXTCLOUD_URL"
     echo "3. Monitor logs: docker-compose logs -f (or tail -f logs/bot.log)"
     echo "4. Test in Talk: @MinecraftBot How do I craft a diamond pickaxe?"
