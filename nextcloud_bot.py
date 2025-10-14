@@ -238,6 +238,11 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
             actor_id = data.get('actor_id', '')
             actor_name = data.get('actor_displayname', 'User')
         
+        # Ignore messages from the bot itself to prevent infinite loops
+        if actor_id.endswith('Minecraft Bot') or actor_name in ['Mincrafter', 'minecraft_bot']:
+            logger.info(f"Ignoring message from bot itself: {actor_name} ({actor_id})")
+            return {"status": "ignored - bot message"}
+        
         # Check if we should respond
        # if not should_respond(message, actor_id):
        #     logger.info("Ignoring message (not relevant)")
