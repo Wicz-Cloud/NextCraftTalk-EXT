@@ -32,7 +32,6 @@ services:
     volumes:
       - ./wiki_data:/app/wiki_data
       - ./chroma_db:/app/chroma_db
-      - ./recipe_cache.db:/app/recipe_cache.db
       - ./.env:/app/.env
     environment:
       - NEXTCLOUD_URL=${NEXTCLOUD_URL}

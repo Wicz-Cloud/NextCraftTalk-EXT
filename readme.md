@@ -7,7 +7,6 @@ A self-hosted, open-source chatbot that answers Minecraft recipe and gameplay qu
 - **Minecraft Wiki Knowledge Base**: Answers questions about crafting, brewing, enchanting, and more
 - **RAG Pipeline**: Retrieves relevant information and generates accurate answers
 - **Local LLM**: Runs entirely on your hardware (no cloud APIs)
-- **Smart Caching**: SQLite cache for instant responses to common questions
 - **Nextcloud Talk Integration**: Responds naturally in chat conversations
 - **Lightweight**: Runs on Raspberry Pi 5 with 8GB RAM
 
@@ -16,8 +15,6 @@ A self-hosted, open-source chatbot that answers Minecraft recipe and gameplay qu
 ```
 User Query → Nextcloud Talk → Webhook → FastAPI Bot
                                            ↓
-                                    Cache Check
-                                    ↓ (miss)
                                   Vector DB Search
                                            ↓
                                     Context Retrieval
@@ -140,7 +137,6 @@ minecraft-wiki-bot/
 ├── wiki_scraper.py        # Scrapes Minecraft Wiki
 ├── vector_db.py           # ChromaDB vector database
 ├── rag_pipeline.py        # RAG retrieval & LLM
-├── cache_manager.py       # SQLite caching
 ├── nextcloud_bot.py       # FastAPI webhook handler
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile            # Container image
@@ -183,13 +179,6 @@ TOP_K_RESULTS=5          # Number of context chunks
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 ```
 
-### Cache Settings
-
-```env
-ENABLE_CACHE=true
-CACHE_DB_PATH=recipe_cache.db
-```
-
 ## 🧪 Testing
 
 ### Test RAG Pipeline
@@ -197,13 +186,6 @@ CACHE_DB_PATH=recipe_cache.db
 ```bash
 # Test vector search and generation
 python rag_pipeline.py
-```
-
-### Test Cache
-
-```bash
-# Seed and test cache
-python cache_manager.py
 ```
 
 ### Test API Endpoint
@@ -248,11 +230,8 @@ tail -f logs/bot.log
 ### Check Statistics
 
 ```bash
-# Cache statistics
+# Bot statistics
 curl http://localhost:8000/stats
-
-# Popular queries
-sqlite3 recipe_cache.db "SELECT query_normalized, count FROM query_stats ORDER BY count DESC LIMIT 10;"
 ```
 
 ### Performance Metrics
@@ -478,25 +457,6 @@ docker-compose up -d
 ```
 
 ## 🎨 Customization
-
-### Add Custom Responses
-
-Edit `cache_manager.py` to add pre-written responses:
-
-```python
-def seed_popular_recipes():
-    cache = RecipeCache()
-    
-    cache.add_popular_recipe(
-        'custom_item',
-        {
-            'ingredients': ['Item A', 'Item B'],
-            'pattern': 'Custom pattern',
-            'result': 'Custom Item'
-        },
-        'crafting'
-    )
-```
 
 ### Modify Response Format
 

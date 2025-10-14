@@ -21,13 +21,11 @@ show_menu() {
     echo "3) Backup Data"
     echo "4) Restore from Backup"
     echo "5) Update Wiki Data"
-    echo "6) Clear Cache"
-    echo "7) Rebuild Vector DB"
-    echo "8) Update Bot (pull latest)"
-    echo "9) Performance Report"
-    echo "10) Popular Queries"
-    echo "11) Test Bot"
-    echo "12) Restart Services"
+    echo "6) Rebuild Vector DB"
+    echo "7) Update Bot (pull latest)"
+    echo "8) Performance Report"
+    echo "9) Test Bot"
+    echo "10) Restart Services"
     echo "0) Exit"
     echo ""
     echo -n "Select option: "
@@ -75,11 +73,6 @@ status_check() {
     
     echo ""
     echo -e "${BLUE}=== Database Status ===${NC}"
-    if [ -f "recipe_cache.db" ]; then
-        SIZE=$(du -h recipe_cache.db | cut -f1)
-        COUNT=$(sqlite3 recipe_cache.db "SELECT COUNT(*) FROM qa_cache;" 2>/dev/null || echo "0")
-        echo "Cache DB: $SIZE ($COUNT cached answers)"
-    fi
     
     if [ -d "chroma_db" ]; then
         SIZE=$(du -sh chroma_db | cut -f1)
@@ -118,11 +111,6 @@ backup_data() {
     mkdir -p "$BACKUP_DIR"
     
     # Backup databases
-    if [ -f "recipe_cache.db" ]; then
-        cp recipe_cache.db "$BACKUP_DIR/"
-        echo "✓ Cached recipes backed up"
-    fi
-    
     # Backup vector database
     if [ -d "chroma_db" ]; then
         cp -r chroma_db "$BACKUP_DIR/"
@@ -179,7 +167,6 @@ restore_backup() {
     BACKUP_DIR=$(basename "$BACKUP_FILE" .tar.gz)
     
     # Restore files
-    [ -f "backups/$BACKUP_DIR/recipe_cache.db" ] && cp "backups/$BACKUP_DIR/recipe_cache.db" .
     [ -d "backups/$BACKUP_DIR/chroma_db" ] && cp -r "backups/$BACKUP_DIR/chroma_db" .
     [ -d "backups/$BACKUP_DIR/wiki_data" ] && cp -r "backups/$BACKUP_DIR/wiki_data" .
     
@@ -210,29 +197,6 @@ update_wiki_data() {
     
     echo -e "${GREEN}✓ Wiki data updated${NC}"
     echo -e "${YELLOW}⚠ Remember to rebuild vector DB (option 7)${NC}"
-}
-
-clear_cache() {
-    echo -e "${YELLOW}Clear cache options:${NC}"
-    echo "1) Clear QA cache only"
-    echo "2) Clear all cache (including stats)"
-    echo "3) Cancel"
-    echo -n "Select: "
-    read OPTION
-    
-    case $OPTION in
-        1)
-            sqlite3 recipe_cache.db "DELETE FROM qa_cache;"
-            echo -e "${GREEN}✓ QA cache cleared${NC}"
-            ;;
-        2)
-            sqlite3 recipe_cache.db "DELETE FROM qa_cache; DELETE FROM query_stats;"
-            echo -e "${GREEN}✓ All cache cleared${NC}"
-            ;;
-        *)
-            echo "Cancelled"
-            ;;
-    esac
 }
 
 rebuild_vector_db() {
@@ -308,36 +272,6 @@ performance_report() {
     
     echo ""
     echo -e "${BLUE}=== Database Stats ===${NC}"
-    
-    if [ -f "recipe_cache.db" ]; then
-        echo "Cache Statistics:"
-        sqlite3 recipe_cache.db <<EOF
-SELECT 'Total Cached Answers: ' || COUNT(*) FROM qa_cache;
-SELECT 'Total Cache Hits: ' || SUM(access_count) FROM qa_cache;
-SELECT 'Popular Recipes: ' || COUNT(*) FROM popular_recipes;
-EOF
-    fi
-    
-    echo ""
-    echo "Press Enter to return to menu..."
-    read
-}
-
-popular_queries() {
-    echo -e "${BLUE}=== Top 20 Popular Queries ===${NC}"
-    echo ""
-    
-    if [ -f "recipe_cache.db" ]; then
-        sqlite3 -column -header recipe_cache.db <<EOF
-SELECT query_normalized AS 'Query', count AS 'Count', 
-       datetime(last_seen) AS 'Last Seen'
-FROM query_stats 
-ORDER BY count DESC 
-LIMIT 20;
-EOF
-    else
-        echo -e "${RED}Cache database not found${NC}"
-    fi
     
     echo ""
     echo "Press Enter to return to menu..."
@@ -418,13 +352,11 @@ while true; do
         3) backup_data; echo ""; echo "Press Enter to continue..."; read ;;
         4) restore_backup; echo ""; echo "Press Enter to continue..."; read ;;
         5) update_wiki_data; echo ""; echo "Press Enter to continue..."; read ;;
-        6) clear_cache; echo ""; echo "Press Enter to continue..."; read ;;
-        7) rebuild_vector_db; echo ""; echo "Press Enter to continue..."; read ;;
-        8) update_bot; echo ""; echo "Press Enter to continue..."; read ;;
-        9) performance_report ;;
-        10) popular_queries ;;
-        11) test_bot ;;
-        12) restart_services; echo ""; echo "Press Enter to continue..."; read ;;
+        6) rebuild_vector_db; echo ""; echo "Press Enter to continue..."; read ;;
+        7) update_bot; echo ""; echo "Press Enter to continue..."; read ;;
+        8) performance_report ;;
+        9) test_bot ;;
+        10) restart_services; echo ""; echo "Press Enter to continue..."; read ;;
         0) echo "Exiting..."; exit 0 ;;
         *) echo -e "${RED}Invalid option${NC}"; sleep 1 ;;
     esac

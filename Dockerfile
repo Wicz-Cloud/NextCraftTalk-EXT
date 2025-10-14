@@ -21,7 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY wiki_scraper.py .
 COPY vector_db.py .
 COPY rag_pipeline.py .
-COPY cache_manager.py .
 COPY nextcloud_bot.py .
 
 # Create necessary directories

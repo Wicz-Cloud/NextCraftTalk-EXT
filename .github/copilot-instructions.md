@@ -7,7 +7,6 @@ This is a self-hosted Minecraft Wiki chatbot using Retrieval-Augmented Generatio
 - **FastAPI Service** (`nextcloud_bot.py`): Webhook handler for Nextcloud Talk integration
 - **RAG Pipeline** (`rag_pipeline.py`): Vector search + LLM generation using Ollama
 - **Vector Database** (`vector_db.py`): ChromaDB with sentence-transformers embeddings
-- **Cache Layer** (`cache_manager.py`): SQLite cache for instant responses to common queries
 - **Data Pipeline** (`wiki_scraper.py`): Scrapes and chunks Minecraft Wiki content
 
 ## Key Workflows
@@ -21,15 +20,11 @@ chmod +x deploy-and-setup.sh
 - Creates virtual environment, installs dependencies
 - Scrapes Minecraft Wiki data (10-30 minutes)
 - Builds ChromaDB vector database with embeddings
-- Seeds SQLite cache with common recipes
 
 ### Development Testing
 ```bash
 # Test RAG pipeline directly
 python rag_pipeline.py
-
-# Test cache functionality
-python cache_manager.py
 
 # Test API endpoints
 curl http://localhost:8000/health
@@ -52,19 +47,12 @@ curl -X POST "http://localhost:8000/test-query?query=How%20to%20craft%20diamond%
 - Use markdown with bullet points for recipes
 - Format: `• 3 Diamonds\n• 2 Sticks`
 - Include sources: `📚 Sources:\n• [Title](url)`
-- Cache indicators: `*⚡ (from cache)*`
 
 ### Error Handling
 - Health checks in FastAPI endpoints
 - Graceful degradation when LLM unavailable
 - Background tasks for async Nextcloud responses
 - Structured logging to `logs/nextcloud_bot.log`
-
-### Caching Strategy
-- SQLite-based cache (`recipe_cache.db`) for Q&A pairs
-- Pre-populated with common recipes (torch, bow, minecart, etc.)
-- Query normalization and hashing for lookups
-- Statistics tracking for popular queries
 
 ### Vector Search
 - ChromaDB with sentence-transformers (`all-MiniLM-L6-v2`)
@@ -96,12 +84,10 @@ curl -X POST "http://localhost:8000/test-query?query=How%20to%20craft%20diamond%
 
 ### Adding New Features
 1. Test components individually first
-2. Update cache seeding if adding common recipes
-3. Add health checks for new endpoints
-4. Follow async patterns for external API calls
+2. Add health checks for new endpoints
+3. Follow async patterns for external API calls
 
 ### Performance Considerations
-- Cache common queries to reduce LLM calls
 - Limit context length in RAG prompts
 - Use background tasks for slow operations
 - Monitor with `/stats` endpoint
@@ -109,7 +95,7 @@ curl -X POST "http://localhost:8000/test-query?query=How%20to%20craft%20diamond%
 ### Debugging
 - Check logs: `tail -f logs/nextcloud_bot.log`
 - Test endpoints: `curl http://localhost:8000/test-query`
-- View cache stats: `curl http://localhost:8000/stats`
+- View stats: `curl http://localhost:8000/stats`
 - Simulate webhooks with curl requests
 
 ## File Organization

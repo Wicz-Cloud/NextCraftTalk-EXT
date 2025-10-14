@@ -87,14 +87,7 @@ curl -X POST http://localhost:8000/webhook \
 docker stats minecraft_bot
 
 # Disk usage
-du -sh wiki_data/ chroma_db/ recipe_cache.db
-
-# Cache statistics
-sqlite3 recipe_cache.db "SELECT COUNT(*) FROM qa_cache;"
-sqlite3 recipe_cache.db "SELECT SUM(access_count) FROM qa_cache;"
-
-# Popular queries
-sqlite3 recipe_cache.db "SELECT query_normalized, count FROM query_stats ORDER BY count DESC LIMIT 10;"
+du -sh wiki_data/ chroma_db/
 
 # Log monitoring
 journalctl -u minecraft-bot -f  # systemd
@@ -111,9 +104,6 @@ python wiki_scraper.py
 # Rebuild vector database
 python vector_db.py
 
-# Seed cache with popular recipes
-python cache_manager.py
-
 # Update dependencies
 pip install --upgrade -r requirements.txt
 
@@ -121,7 +111,7 @@ pip install --upgrade -r requirements.txt
 git pull && pip install -r requirements.txt
 
 # Backup everything
-tar -czf backup_$(date +%Y%m%d).tar.gz wiki_data chroma_db recipe_cache.db .env
+tar -czf backup_$(date +%Y%m%d).tar.gz wiki_data chroma_db .env
 ```
 
 ## 🎯 Ollama Operations
@@ -151,26 +141,8 @@ ollama run phi3:mini "Hello, how are you?"
 ## 🗄️ Database Operations
 
 ```bash
-# SQLite cache queries
-sqlite3 recipe_cache.db
-
-# View all cached answers
-SELECT query_text, created_at FROM qa_cache ORDER BY created_at DESC LIMIT 10;
-
-# View popular recipes
-SELECT item_name, category FROM popular_recipes;
-
-# View query stats
-SELECT * FROM query_stats ORDER BY count DESC;
-
-# Clear cache
-DELETE FROM qa_cache;
-
-# Vacuum database
-VACUUM;
-
-# Exit SQLite
-.quit
+# Vector database operations are handled automatically
+# Use maintenance.sh for database management
 ```
 
 ## 🐛 Troubleshooting
@@ -205,7 +177,6 @@ python3 -c "import requests; print(requests.get('http://localhost:11434/api/tags
 ```
 minecraft-wiki-bot/
 ├── .env                      # Configuration (DO NOT COMMIT)
-├── recipe_cache.db           # SQLite cache
 ├── wiki_data/
 │   ├── wiki_docs_full.json   # Complete wiki pages
 │   └── wiki_docs_chunks.json # Chunked documents
@@ -293,9 +264,8 @@ docker-compose restart
 
 # Reset everything (nuclear option)
 docker-compose down
-rm -rf chroma_db recipe_cache.db
+rm -rf chroma_db
 python3 vector_db.py
-python3 cache_manager.py
 docker-compose up -d
 ```
 
@@ -310,9 +280,7 @@ curl -s http://localhost:11434/api/tags | python3 -m json.tool && \
 echo "=== Docker Status ===" && \
 docker-compose ps && \
 echo "=== Disk Usage ===" && \
-df -h . && \
-echo "=== Cache Stats ===" && \
-sqlite3 recipe_cache.db "SELECT COUNT(*) as cached_answers FROM qa_cache;"
+df -h .
 ```
 
 ## 🔗 Important URLs
@@ -336,8 +304,7 @@ http://localhost:11434/api/tags    # List models
    ./maintenance.sh  # Option 3: Backup
    ```
 
-2. **Monitor cache hit rate**
-   - High cache hits = good performance
+2. **Update wiki data regularly**
    - Update wiki data monthly
    
 3. **Watch memory usage**
@@ -369,7 +336,6 @@ http://localhost:11434/api/tags    # List models
 | "Ollama not found" | `ollama serve &` |
 | High memory usage | Restart bot, use `phi3:mini` |
 | Vector search fails | `python3 vector_db.py` (rebuild) |
-| Cache not working | Check `recipe_cache.db` permissions |
 | Webhook 404 | Verify URL in Nextcloud settings |
 
 ## 🎓 Learning Resources
@@ -385,7 +351,6 @@ cat nextcloud_bot.py     # How webhook handling works
 python3 wiki_scraper.py  # Scrape wiki
 python3 vector_db.py     # Build/test vector DB
 python3 rag_pipeline.py  # Test RAG pipeline
-python3 cache_manager.py # Test cache
 ```
 
 ---

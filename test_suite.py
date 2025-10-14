@@ -11,7 +11,6 @@ import time
 
 from vector_db import MinecraftVectorDB
 from rag_pipeline import MinecraftRAGPipeline
-from cache_manager import RecipeCache
 
 
 class TestVectorDatabase(unittest.TestCase):
@@ -101,57 +100,6 @@ class TestRAGPipeline(unittest.TestCase):
         self.assertGreater(len(result['answer']), 10)
 
 
-class TestCache(unittest.TestCase):
-    """Test caching functionality"""
-    
-    @classmethod
-    def setUpClass(cls):
-        """Initialize test cache"""
-        cls.cache = RecipeCache("test_cache.db")
-    
-    def test_cache_storage(self):
-        """Test storing answers in cache"""
-        query = "test craft diamond sword"
-        answer = "Test answer for diamond sword"
-        sources = [{'title': 'Diamond Sword', 'url': 'http://test.com'}]
-        
-        self.cache.cache_answer(query, answer, sources)
-        
-        # Retrieve cached answer
-        result = self.cache.get_cached_answer(query)
-        
-        self.assertIsNotNone(result)
-        self.assertEqual(result['answer'], answer)
-        self.assertTrue(result['cached'])
-    
-    def test_popular_recipes(self):
-        """Test popular recipe storage"""
-        self.cache.add_popular_recipe(
-            "test_item",
-            {'ingredients': ['A', 'B'], 'result': 'Test Item'},
-            "crafting"
-        )
-        
-        recipe = self.cache.get_popular_recipe("test_item")
-        
-        self.assertIsNotNone(recipe)
-        self.assertIn('recipe', recipe)
-        self.assertEqual(recipe['category'], 'crafting')
-    
-    def test_query_logging(self):
-        """Test query statistics"""
-        test_query = "test query for stats"
-        
-        self.cache.log_query(test_query)
-        self.cache.log_query(test_query)  # Log twice
-        
-        popular = self.cache.get_popular_queries(limit=10)
-        
-        # Check if our query appears
-        query_found = any(test_query.lower() in q[0] for q in popular)
-        self.assertTrue(query_found)
-
-
 class TestAPIEndpoints(unittest.TestCase):
     """Test FastAPI endpoints"""
     
@@ -219,28 +167,15 @@ class TestIntegration(unittest.TestCase):
         # Initialize components
         db = MinecraftVectorDB()
         rag = MinecraftRAGPipeline(db)
-        cache = RecipeCache()
         
         # Test query
         query = "How do I craft a golden apple?"
         
-        # Check cache first
-        cached = cache.get_cached_answer(query)
+        # Generate answer
+        result = rag.answer_question(query)
         
-        if not cached:
-            # Generate answer
-            result = rag.answer_question(query)
-            
-            # Cache result
-            cache.cache_answer(query, result['answer'], result.get('sources'))
-            
-            self.assertIn('answer', result)
-            self.assertIsInstance(result['answer'], str)
-        
-        # Verify cache works
-        cached_result = cache.get_cached_answer(query)
-        self.assertIsNotNone(cached_result)
-        self.assertTrue(cached_result['cached'])
+        self.assertIn('answer', result)
+        self.assertIsInstance(result['answer'], str)
 
 
 def run_tests():
@@ -256,7 +191,6 @@ def run_tests():
     # Add test cases
     suite.addTests(loader.loadTestsFromTestCase(TestVectorDatabase))
     suite.addTests(loader.loadTestsFromTestCase(TestRAGPipeline))
-    suite.addTests(loader.loadTestsFromTestCase(TestCache))
     suite.addTests(loader.loadTestsFromTestCase(TestAPIEndpoints))
     suite.addTests(loader.loadTestsFromTestCase(TestIntegration))
     

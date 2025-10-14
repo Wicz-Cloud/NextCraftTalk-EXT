@@ -178,7 +178,6 @@ chmod +x deploy-and-setup.sh
 # - Install dependencies
 # - Scrape wiki data (10-30 minutes)
 # - Build vector database
-# - Seed cache
 # - Deploy based on chosen method
 ```
 
@@ -243,9 +242,6 @@ python wiki_scraper.py
 # Build vector database
 python vector_db.py
 
-# Seed cache
-python cache_manager.py
-
 # Start bot
 python nextcloud_bot.py
 ```
@@ -304,7 +300,7 @@ python nextcloud_bot.py
 curl http://your-bot-server:8000/health
 
 # Should return:
-# {"status":"healthy","components":{"vector_db":true,"rag_pipeline":true,"cache":true}}
+# {"status":"healthy","components":{"vector_db":true,"rag_pipeline":true}}
 ```
 
 ### Step 5: Add Bot to Conversation
@@ -371,7 +367,6 @@ curl http://localhost:8000/stats | python3 -m json.tool
 - [ ] Bot responds to Minecraft keywords
 - [ ] Responses are accurate and well-formatted
 - [ ] Sources are included and linked
-- [ ] Cache is working (instant responses for repeated queries)
 - [ ] Health endpoint returns "healthy"
 - [ ] Logs show no errors
 
@@ -392,7 +387,6 @@ curl http://localhost:8000/stats | python3 -m json.tool
 ### Performance
 
 - [ ] Appropriate model for hardware (see table below)
-- [ ] Cache is enabled and working
 - [ ] Vector database is optimized
 - [ ] Adequate disk space (monitor logs)
 - [ ] Memory usage is stable
@@ -412,7 +406,6 @@ curl http://localhost:8000/stats | python3 -m json.tool
 - [ ] Set up log rotation
 - [ ] Monitor disk usage
 - [ ] Track response times
-- [ ] Monitor cache hit rate
 - [ ] Set up alerts for failures
 - [ ] Regular backup schedule
 
@@ -504,7 +497,6 @@ htop
 **Optimize for speed:**
 1. Use smaller model: `MODEL_NAME=phi3:mini`
 2. Reduce context: `TOP_K_RESULTS=3`
-3. Enable cache: `ENABLE_CACHE=true`
 4. Add more RAM or swap space
 
 ### Vector Search Not Finding Results

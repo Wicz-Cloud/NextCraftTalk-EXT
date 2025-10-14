@@ -147,13 +147,6 @@ build_vector_database() {
     echo -e "${GREEN}✓ Vector database created${NC}"
 }
 
-seed_cache() {
-    echo -e "${BLUE}Seeding recipe cache...${NC}"
-    source venv/bin/activate
-    python cache_manager.py
-    echo -e "${GREEN}✓ Recipe cache seeded${NC}"
-}
-
 run_initial_setup() {
     echo ""
     echo -e "${BLUE}========================================${NC}"
@@ -178,7 +171,6 @@ run_initial_setup() {
     
     scrape_wiki_data
     build_vector_database
-    seed_cache
     
     echo ""
     echo -e "${GREEN}========================================${NC}"
@@ -238,7 +230,6 @@ backup_data() {
     
     # Backup databases and data
     [ -d "chroma_db" ] && cp -r chroma_db "$BACKUP_DIR/"
-    [ -f "recipe_cache.db" ] && cp recipe_cache.db "$BACKUP_DIR/"
     [ -d "wiki_data" ] && cp -r wiki_data "$BACKUP_DIR/"
     
     echo -e "${GREEN}✓ Backup created: $BACKUP_DIR${NC}"

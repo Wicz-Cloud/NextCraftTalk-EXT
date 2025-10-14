@@ -17,7 +17,6 @@ import json
 
 from vector_db import MinecraftVectorDB
 from rag_pipeline import MinecraftRAGPipeline
-from cache_manager import RecipeCache
 
 # Load environment variables
 load_dotenv()
@@ -49,7 +48,6 @@ BOT_NAME = os.getenv("BOT_NAME", "MinecraftBot")
 # Initialize components
 vector_db = None
 rag_pipeline = None
-cache = None
 
 
 class NextcloudMessage(BaseModel):
@@ -69,7 +67,7 @@ class NextcloudMessage(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """Initialize RAG components on startup"""
-    global vector_db, rag_pipeline, cache
+    global vector_db, rag_pipeline
     
     logger.info("🚀 Starting Minecraft Wiki Bot...")
     
@@ -86,10 +84,6 @@ async def startup_event():
             model_name=MODEL_NAME
         )
         
-        # Initialize cache
-        logger.info("Loading cache...")
-        cache = RecipeCache()
-        
         logger.info("✓ Bot ready!")
         
     except Exception as e:
@@ -100,8 +94,6 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    if cache:
-        cache.close()
     logger.info("Bot shutdown complete")
 
 
@@ -122,13 +114,9 @@ async def health_check():
         "status": "healthy",
         "components": {
             "vector_db": vector_db is not None,
-            "rag_pipeline": rag_pipeline is not None,
-            "cache": cache is not None
+            "rag_pipeline": rag_pipeline is not None
         }
     }
-    
-    if cache:
-        health["cache_stats"] = cache.get_cache_stats()
     
     return health
 
@@ -198,10 +186,6 @@ def format_answer_markdown(result: Dict) -> str:
  #       for source in result['sources'][:3]:
  #           answer += f"\n• [{source['title']}]({source['url']})"
     
-    # Add cache indicator
-    if result.get('cached'):
-        answer += "\n\n*⚡ (from cache)*"
-    
     return answer
 
 
@@ -252,34 +236,15 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         query = clean_message(message)
         logger.info(f"Processing query: {query}")
         
-        # Log query
-        if cache:
-            cache.log_query(query)
-        
-        # Check cache first
-        cached_result = None
-        if cache:
-            cached_result = cache.get_cached_answer(query)
-        
-        if cached_result:
-            logger.info("✓ Cache hit!")
-            response_text = format_answer_markdown(cached_result)
-            background_tasks.add_task(send_to_nextcloud, token, response_text)
-            return {"status": "success", "cached": True}
-        
         # Process with RAG pipeline
         logger.info("Querying RAG pipeline...")
         result = rag_pipeline.answer_question(query)
-        
-        # Cache the result
-        if cache and result['answer']:
-            cache.cache_answer(query, result['answer'], result.get('sources'))
         
         # Format and send response
         response_text = format_answer_markdown(result)
         background_tasks.add_task(send_to_nextcloud, token, response_text)
         
-        return {"status": "success", "cached": False}
+        return {"status": "success"}
         
     except Exception as e:
         logger.error(f"Error processing webhook: {e}")
@@ -291,12 +256,6 @@ async def test_query(query: str):
     """Test endpoint for debugging (no Nextcloud required)"""
     logger.info(f"Test query: {query}")
 
-    # Check cache
-    cached_result = cache.get_cached_answer(query) if cache else None
-    
-    if cached_result:
-        return {"result": cached_result, "source": "cache"}
-    
     # Query RAG
     result = rag_pipeline.answer_question(query)
     
@@ -306,10 +265,7 @@ async def test_query(query: str):
 @app.get("/stats")
 async def get_stats():
     """Get bot statistics"""
-    stats = {
-        "cache_stats": cache.get_cache_stats() if cache else {},
-        "popular_queries": cache.get_popular_queries(10) if cache else []
-    }
+    stats = {}
     
     if vector_db:
         stats["vector_db_stats"] = vector_db.get_collection_stats()
