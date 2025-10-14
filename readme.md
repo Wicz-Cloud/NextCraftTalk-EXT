@@ -49,14 +49,21 @@ User Query → Nextcloud Talk → Webhook → FastAPI Bot
 git clone https://github.com/yourusername/minecraft-wiki-bot.git
 cd minecraft-wiki-bot
 
-# Run setup script
-chmod +x setup.sh
-./setup.sh
+# Run unified setup and deployment script
+chmod +x deploy-and-setup.sh
+./deploy-and-setup.sh docker production
 ```
+
+The script will automatically:
+- Detect if initial setup is needed
+- Create virtual environment and install dependencies
+- Scrape Minecraft Wiki data
+- Build vector database
+- Deploy the bot
 
 ### 2. Configure Environment
 
-Edit `.env` with your Nextcloud credentials:
+Edit `.env` with your Nextcloud credentials (the script will create this file for you):
 
 ```env
 NEXTCLOUD_URL=https://your-nextcloud.com
@@ -139,7 +146,8 @@ minecraft-wiki-bot/
 ├── Dockerfile            # Container image
 ├── docker-compose.yml    # Multi-service deployment
 ├── .env.example          # Configuration template
-├── setup.sh              # Automated setup
+├── deploy-and-setup.sh   # Unified setup & deployment script
+├── maintenance.sh        # Maintenance and monitoring tools
 └── README.md             # This file
 ```
 

@@ -161,28 +161,53 @@ Copy this password - this is your bot token!
 
 Choose the deployment method that best fits your environment.
 
-### Option A: Automated Setup (Recommended)
+### Unified Setup and Deployment (Recommended)
+
+The new unified script combines setup and deployment into a single seamless workflow:
 
 ```bash
-# Make scripts executable
-chmod +x setup.sh deploy.sh maintenance.sh
+# Make script executable
+chmod +x deploy-and-setup.sh
 
-# Run automated setup
-./setup.sh
+# Run unified setup and deployment
+./deploy-and-setup.sh docker production
 
-# This will:
+# This will automatically:
+# - Detect if initial setup is needed
 # - Create virtual environment
 # - Install dependencies
 # - Scrape wiki data (10-30 minutes)
 # - Build vector database
 # - Seed cache
+# - Deploy based on chosen method
 ```
 
-### Option B: Docker Deployment (Production)
+**Available deployment types:**
+- `docker` - Docker Compose deployment (default)
+- `local` - Local deployment with Python virtual environment
+- `pi` or `raspberry-pi` - Raspberry Pi optimized deployment
+
+**Available environments:**
+- `production` - Production mode with backups and tests (default)
+- `development` - Development mode (skips backups and tests)
+
+**Examples:**
+```bash
+# Docker deployment (production)
+./deploy-and-setup.sh docker production
+
+# Local deployment (development)
+./deploy-and-setup.sh local development
+
+# Raspberry Pi deployment
+./deploy-and-setup.sh pi production
+```
+
+### Option A: Docker Deployment Details
 
 ```bash
 # Build and start services
-./deploy.sh docker production
+./deploy-and-setup.sh docker production
 
 # Or manually:
 docker-compose up -d
@@ -198,9 +223,13 @@ docker-compose logs -f minecraft_bot
 - Automatic restarts
 - Health checks
 
-### Option C: Local Development
+### Option B: Local Development
 
 ```bash
+# Use unified script
+./deploy-and-setup.sh local development
+
+# Or manually:
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
@@ -221,11 +250,11 @@ python cache_manager.py
 python nextcloud_bot.py
 ```
 
-### Option D: Raspberry Pi Specific
+### Option C: Raspberry Pi Specific
 
 ```bash
 # Use optimized deployment
-./deploy.sh pi production
+./deploy-and-setup.sh pi production
 
 # This configures:
 # - Lightweight model (phi3:mini)
