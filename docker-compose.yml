@@ -10,8 +10,16 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     networks:
-      - minecraft_bot_network
+      - nextcloud-aio
     restart: unless-stopped
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [gpu]
+    # For CPU-only, remove the deploy section above
 
   # Minecraft Bot Service
   minecraft_bot:
@@ -36,29 +44,28 @@ services:
       - ollama
     networks:
       - minecraft_bot_network
+      - nextcloud-aio
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
 
   # Nginx Reverse Proxy (optional, for HTTPS)
-  nginx:
-    image: nginx:alpine
-    container_name: minecraft_bot_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - minecraft_bot
-    networks:
-      - minecraft_bot_network
-    restart: unless-stopped
-    # Comment out if not using reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: minecraft_bot_nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - minecraft_bot
+  #   networks:
+  #     - nextcloud-aio
+  #   restart: unless-stopped
+  #   # Comment out if not using reverse proxy
 
 volumes:
   ollama_data:
@@ -67,3 +74,6 @@ volumes:
 networks:
   minecraft_bot_network:
     driver: bridge
+  nextcloud-aio:
+    external: true
+    name: nextcloud-aio
