@@ -12,14 +12,6 @@ services:
     networks:
       - minecraft_bot_network
     restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # For CPU-only, remove the deploy section above
 
   # Minecraft Bot Service
   minecraft_bot:
