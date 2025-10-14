@@ -15,11 +15,15 @@ import time
 from pathlib import Path
 from typing import List, Dict, Optional
 import re
-from tqdm import tqdm
+# from tqdm import tqdm
 
 # Optional: for vector embedding
-from chromadb import Client
-from sentence_transformers import SentenceTransformer
+try:
+    from chromadb import Client
+    from sentence_transformers import SentenceTransformer
+    EMBEDDING_DEPS_AVAILABLE = True
+except ImportError:
+    EMBEDDING_DEPS_AVAILABLE = False
 
 
 class MinecraftWikiScraper:
@@ -31,8 +35,11 @@ class MinecraftWikiScraper:
         self.session.headers.update({
             "User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"
         })
-        self.embed = embed
-        if embed:
+        self.embed = embed and EMBEDDING_DEPS_AVAILABLE
+        if embed and not EMBEDDING_DEPS_AVAILABLE:
+            print("Warning: Embedding dependencies not available, disabling embedding")
+        
+        if self.embed:
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
             self.chroma = Client()
             self.collection = self.chroma.get_or_create_collection("minecraft_wiki")
@@ -94,9 +101,21 @@ class MinecraftWikiScraper:
             html_content = data["parse"]["text"]["*"]
             soup = BeautifulSoup(html_content, "html.parser")
 
-            # Remove non-content elements
-            for tag in soup(["script", "style", "nav", "footer", "table", "noscript"]):
+            # Remove non-content elements but preserve crafting tables
+            for tag in soup(["script", "style", "nav", "footer", "noscript"]):
                 tag.decompose()
+            
+                        # Keep tables that contain crafting recipe (have specific classes or content)
+            for table in soup.find_all("table"):
+                # Check if this table contains crafting recipe information
+                table_text = table.get_text().lower()
+                if any(keyword in table_text for keyword in ["crafting", "recipe", "ingredients", "grid"]):
+                    # Convert table to readable text format
+                    table_str = self._convert_crafting_table_to_text(table)
+                    # Replace table with formatted recipe text
+                    table.replace_with(f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n")
+                else:
+                    table.decompose()
 
             text = soup.get_text(" ", strip=True)
             text = re.sub(r"\s+", " ", text)
@@ -109,6 +128,62 @@ class MinecraftWikiScraper:
         except Exception as e:
             print(f"Error fetching page {title}: {e}")
             return None
+
+    def _convert_crafting_table_to_text(self, table) -> str:
+        """Convert a crafting table to readable text format"""
+        try:
+            # Collect all text only from table cells, not from the entire table
+            cells_text = []
+            for cell in table.find_all(["td", "th"]):
+                cell_text = cell.get_text(separator=' ', strip=True)
+                if cell_text:
+                    cells_text.append(cell_text)
+            
+            # Extract item names from images in cells
+            item_names = []
+            for cell in table.find_all(["td", "th"]):
+                imgs = cell.find_all("img")
+                for img in imgs:
+                    alt = img.get("alt", "")
+                    if alt:
+                        # Clean up the alt text
+                        alt = re.sub(r' \(item\)$', '', alt)
+                        alt = re.sub(r' \(block\)$', '', alt)
+                        # Skip unwanted patterns
+                        if not any(skip in alt.lower() for skip in ['inventory sprite', 'invicon', 'sprite', 'linking to', 'with description']):
+                            if 2 <= len(alt) <= 30:
+                                item_names.append(alt)
+            
+            # If we found item names from images, use those
+            if len(item_names) >= 2:
+                # Remove duplicates
+                unique_items = list(dict.fromkeys(item_names))
+                return "Ingredients: " + " + ".join(unique_items)
+            
+            # Fallback: try to extract reasonable words from cell text
+            potential_items = []
+            for text in cells_text:
+                words = text.split()
+                for word in words:
+                    word = word.strip()
+                    # Look for capitalized words that look like item names
+                    if (len(word) >= 3 and len(word) <= 20 and 
+                        word[0].isupper() and 
+                        not word.startswith('(') and 
+                        not word.endswith(')') and
+                        word not in ['Crafting', 'Ingredients', 'Result', 'Recipe', 'Grid']):
+                        potential_items.append(word)
+            
+            if len(potential_items) >= 2:
+                unique_items = list(dict.fromkeys(potential_items))
+                return "Ingredients: " + " + ".join(unique_items[:4])
+            
+            # Final fallback
+            return "Crafting recipe available"
+                
+        except Exception as e:
+            print(f"Error converting crafting table: {e}")
+            return "Crafting recipe available"
 
     # ---------------------------------------------------------------------
     # 3. CHUNKING LOGIC
@@ -154,7 +229,7 @@ class MinecraftWikiScraper:
 
         print(f"Total pages to scrape: {len(all_titles)}")
         documents = []
-        for title in tqdm(sorted(all_titles)):
+        for title in sorted(all_titles):
             doc = self.fetch_page_content(title)
             if doc:
                 documents.append(doc)
@@ -171,7 +246,7 @@ class MinecraftWikiScraper:
 
         # Chunk & optionally embed
         all_chunks = []
-        for doc in tqdm(docs, desc="Chunking documents"):
+        for doc in docs:
             chunks = self.chunk_document(doc)
             all_chunks.extend(chunks)
 

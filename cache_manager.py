@@ -57,6 +57,39 @@ class RecipeCache:
         
         self.conn.commit()
         print("✓ Cache database initialized")
+        
+        # Pre-populate common recipes
+        self._populate_common_recipes()
+    
+    def _populate_common_recipes(self):
+        """Pre-populate cache with common crafting recipes"""
+        common_recipes = {
+            "craft a torch": {
+                "answer": "To craft a torch, place **Coal or Charcoal** in the center of the crafting grid and **Stick** below it.\n\n**Recipe:**\n- Coal/Charcoal (top center)\n- Stick (bottom center)\n\nThis gives you 4 torches.",
+                "sources": [{"title": "Torch", "url": "https://minecraft.wiki/wiki/Torch"}]
+            },
+            "how do i craft a torch": {
+                "answer": "To craft a torch, place **Coal or Charcoal** in the center of the crafting grid and **Stick** below it.\n\n**Recipe:**\n- Coal/Charcoal (top center)\n- Stick (bottom center)\n\nThis gives you 4 torches.",
+                "sources": [{"title": "Torch", "url": "https://minecraft.wiki/wiki/Torch"}]
+            },
+            "craft a bow": {
+                "answer": "To craft a bow, arrange **Sticks** and **String** in a specific pattern:\n\n**Recipe:**\n- Stick + String + Stick\n- Stick + (empty) + Stick  \n- Stick + String + Stick\n\nThis gives you 1 bow.",
+                "sources": [{"title": "Bow", "url": "https://minecraft.wiki/wiki/Bow"}]
+            },
+            "how do i craft a bow": {
+                "answer": "To craft a bow, arrange **Sticks** and **String** in a specific pattern:\n\n**Recipe:**\n- Stick + String + Stick\n- Stick + (empty) + Stick  \n- Stick + String + Stick\n\nThis gives you 1 bow.",
+                "sources": [{"title": "Bow", "url": "https://minecraft.wiki/wiki/Bow"}]
+            },
+            "craft a minecart": {
+                "answer": "To craft a minecart, place **Iron Ingots** in a U-shape in the crafting grid:\n\n**Recipe:**\n- Iron Ingot + (empty) + Iron Ingot\n- Iron Ingot + Iron Ingot + Iron Ingot\n\nThis gives you 1 minecart.",
+                "sources": [{"title": "Minecart", "url": "https://minecraft.wiki/wiki/Minecart"}]
+            }
+        }
+        
+        for query, data in common_recipes.items():
+            if not self.get_cached_answer(query):
+                self.cache_answer(query, data["answer"], data["sources"])
+                print(f"Pre-populated cache with: {query}")
     
     def _hash_query(self, query: str) -> str:
         """Create hash of normalized query for cache lookup"""

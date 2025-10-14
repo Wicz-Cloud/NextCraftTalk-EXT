@@ -193,10 +193,10 @@ def format_answer_markdown(result: Dict) -> str:
     answer = result['answer']
     
     # Add sources if available
-    if result.get('sources'):
-        answer += "\n\n📚 **Sources:**"
-        for source in result['sources'][:3]:
-            answer += f"\n• [{source['title']}]({source['url']})"
+ #   if result.get('sources'):
+ #       answer += "\n\n📚 **Sources:**"
+ #       for source in result['sources'][:3]:
+ #           answer += f"\n• [{source['title']}]({source['url']})"
     
     # Add cache indicator
     if result.get('cached'):
@@ -290,7 +290,7 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
 async def test_query(query: str):
     """Test endpoint for debugging (no Nextcloud required)"""
     logger.info(f"Test query: {query}")
-    
+
     # Check cache
     cached_result = cache.get_cached_answer(query) if cache else None
     

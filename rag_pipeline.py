@@ -13,7 +13,7 @@ class MinecraftRAGPipeline:
                  vector_db: MinecraftVectorDB,
                  ollama_url: str = "http://localhost:11434",
                  model_name: str = "phi3:mini",
-                 top_k: int = 5):
+                 top_k: int = 2):  # Reduced from 5 to 2
         """
         Initialize RAG pipeline
         
@@ -49,15 +49,36 @@ class MinecraftRAGPipeline:
     def retrieve_context(self, query: str) -> List[Dict]:
         """Retrieve relevant documents from vector DB"""
         results = self.vector_db.search(query, n_results=self.top_k)
-        return results
+        
+        # Filter out low-relevance results (score > 0.5 means less similar)
+        filtered_results = []
+        for result in results:
+            # Convert distance to similarity score (lower distance = higher similarity)
+            similarity = 1 - result.get('score', 1.0)
+            if similarity > 0.1:  # Only keep reasonably similar results
+                filtered_results.append(result)
+        
+        return filtered_results[:3]  # Limit to top 3 most relevant
     
     def build_prompt(self, query: str, context_docs: List[Dict]) -> str:
         """Build prompt for LLM with retrieved context"""
         
-        # Build context from retrieved documents
+        # Build context from retrieved documents, limiting total length
         context_parts = []
+        total_length = 0
+        max_context_length = 2000  # Reduced from 3000 to 2000 characters
+        
         for i, doc in enumerate(context_docs):
-            context_parts.append(f"[Source {i+1}: {doc['title']}]\n{doc['content']}")
+            doc_content = f"[Source {i+1}: {doc['title']}]\n{doc['content']}"
+            if total_length + len(doc_content) > max_context_length:
+                # Truncate if too long
+                remaining = max_context_length - total_length
+                if remaining > 200:  # Only add if we have space for meaningful content
+                    doc_content = doc_content[:remaining] + "..."
+                    context_parts.append(doc_content)
+                break
+            context_parts.append(doc_content)
+            total_length += len(doc_content)
         
         context = "\n\n---\n\n".join(context_parts)
         
@@ -93,17 +114,26 @@ ANSWER:"""
             "options": {
                 "temperature": temperature,
                 "top_p": 0.9,
-                "top_k": 40
+                "top_k": 40,
+                "num_predict": 200,  # Limit response length
+                "num_ctx": 1024,     # Reduced from 2048 to 1024
+                "repeat_penalty": 1.1
             }
         }
         
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            response = requests.post(url, json=payload, timeout=180)  # Increased to 3 minutes
             if response.status_code == 200:
                 data = response.json()
-                return data.get('response', '').strip()
+                answer = data.get('response', '').strip()
+                if answer:
+                    return answer
+                else:
+                    return "I found some information but couldn't generate a complete answer. Please try rephrasing your question."
             else:
                 return f"Error generating response: {response.status_code}"
+        except requests.exceptions.Timeout:
+            return "The AI is taking too long to respond. Please try a simpler question or try again later."
         except Exception as e:
             return f"Error connecting to LLM: {str(e)}"
     
