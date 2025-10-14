@@ -4,7 +4,7 @@
 
 ```bash
 # Complete setup and deployment
-git clone <repo> && cd minecraft-wiki-bot && chmod +x setup.sh && ./setup.sh && ./deploy.sh docker production
+git clone <repo> && cd minecraft-wiki-bot && chmod +x deploy-and-setup.sh && ./deploy-and-setup.sh docker production
 ```
 
 ## 🔧 Common Commands
