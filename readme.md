@@ -1,10 +1,13 @@
 # 🎮 Minecraft Wiki RAG Chatbot for Nextcloud Talk
 
-A self-hosted, open-source chatbot that answers Minecraft recipe and gameplay questions using RAG (Retrieval-Augmented Generation) with local LLMs. Fully integrated with Nextcloud Talk.
+A self-hosted, open-source chatbot that answers Minecraft questions using RAG (Retrieval-Augmented Generation) with local LLMs. Optimized for kids with simple, fun responses. Fully integrated with Nextcloud Talk.
 
 ## 🌟 Features
 
-- **Minecraft Wiki Knowledge Base**: Answers questions about crafting, brewing, enchanting, and more
+- **Multi-Source Knowledge Base**: Scrapes Minecraft Wiki, official tips, crafting guides, and beginner tutorials
+- **Fast Multi-threaded Processing**: Parallel scraping and vector embedding for quick setup
+- **Kid-Friendly Responses**: Simple language, fun tone, clear steps suitable for 10-year-olds
+- **Smart UX**: Shows "Thinking..." indicator while processing, then delivers clean answers
 - **RAG Pipeline**: Retrieves relevant information and generates accurate answers
 - **Local LLM**: Runs entirely on your hardware (no cloud APIs)
 - **Nextcloud Talk Integration**: Responds naturally in chat conversations
@@ -54,8 +57,8 @@ chmod +x deploy-and-setup.sh
 The script will automatically:
 - Detect if initial setup is needed
 - Create virtual environment and install dependencies
-- Scrape Minecraft Wiki data
-- Build vector database
+- Scrape Minecraft knowledge base from multiple sources (Wiki, official tips, crafting guides)
+- Build vector database with multi-threaded processing
 - Deploy the bot
 
 ### 2. Configure Environment
@@ -529,6 +532,21 @@ MIT License - See LICENSE file for details
 - **Issues**: [GitHub Issues](https://github.com/yourusername/minecraft-wiki-bot/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/minecraft-wiki-bot/discussions)
 - **Documentation**: [Wiki](https://github.com/yourusername/minecraft-wiki-bot/wiki)
+
+---
+
+## 📝 Changelog
+
+### Latest Updates (October 2025)
+- ✅ **Removed cache functionality** - Simplified architecture, removed cache-related code
+- ✅ **Expanded knowledge sources** - Added official Minecraft tips, crafting.net, Instructables, Minecraft Beginners Guide
+- ✅ **Multi-threaded performance** - Parallel scraping (5 wiki threads, 3 URL threads) and vector DB processing (4 worker threads)
+- ✅ **Kid-friendly optimization** - Responses use simple language, fun tone, clear steps for 10-year-olds
+- ✅ **Enhanced UX** - "Thinking..." indicator appears immediately, disappears after response
+- ✅ **Increased response limits** - LLM token limit raised to 1000 for complete answers
+- ✅ **Improved context filtering** - Stricter prompts to ignore non-Minecraft content
+
+---
 
 ## 🗺️ Roadmap
 

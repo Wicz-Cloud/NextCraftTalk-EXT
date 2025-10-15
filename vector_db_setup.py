@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 import numpy as np
+import concurrent.futures
 
 class MinecraftVectorDB:
     def __init__(self, 
@@ -63,10 +64,10 @@ class MinecraftVectorDB:
         """
         print(f"Adding {len(documents)} documents to vector DB...")
         
+        # Prepare batches
+        batches = []
         for i in range(0, len(documents), batch_size):
             batch = documents[i:i+batch_size]
-            
-            # Prepare data
             ids = [f"doc_{i+j}" for j in range(len(batch))]
             texts = [doc['content'] for doc in batch]
             metadatas = [
@@ -77,11 +78,19 @@ class MinecraftVectorDB:
                 }
                 for j, doc in enumerate(batch)
             ]
-            
-            # Generate embeddings
+            batches.append((ids, texts, metadatas))
+        
+        # Multi-threaded encoding
+        def encode_batch(batch_data):
+            ids, texts, metadatas = batch_data
             embeddings = self.embed_batch(texts)
-            
-            # Add to collection
+            return ids, embeddings, texts, metadatas
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            encoded_batches = list(executor.map(encode_batch, batches))
+        
+        # Add to collection sequentially (ChromaDB may not be thread-safe for adds)
+        for ids, embeddings, texts, metadatas in encoded_batches:
             self.collection.add(
                 ids=ids,
                 embeddings=embeddings,

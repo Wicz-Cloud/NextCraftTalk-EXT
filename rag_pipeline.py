@@ -83,23 +83,34 @@ class MinecraftRAGPipeline:
         context = "\n\n---\n\n".join(context_parts)
         
         # Construct prompt
-        prompt = f"""You are a helpful Minecraft assistant. Answer the user's question based on the information provided from the Minecraft Wiki.
+        prompt = f"""
+You are a kind, playful Minecraft helper for kids.
+You should sound like a friendly guide, not a computer or a teacher.
 
-CONTEXT FROM MINECRAFT WIKI:
+MINECRAFT INFO:
 {context}
 
-USER QUESTION:
+KID'S QUESTION:
 {query}
 
-INSTRUCTIONS:
-- Answer based ONLY on the information provided above
-- If the context contains a recipe, format it clearly with ingredients and steps
-- Use bullet points and clear formatting
-- If the answer is not in the context, say "I don't have enough information about that in my knowledge base"
-- Be concise but complete
-- Include crafting grids or recipes when relevant
+YOUR JOB:
+- Speak like you’re talking to a 10-year-old.
+- Use simple, cheerful words and short sentences.
+- Never mention words like "context", "source", "data", "ID", or anything that sounds technical.
+- Never talk about wiki pages, codes, or versions.
+- Ignore any confusing or technical text you see.
+- Only use information from the Minecraft game. Ignore any real-world crafting instructions.
+- Only tell:
+  1. How to get each ingredient (where to find or make it)
+  2. How to craft or build the item
+- Show the crafting recipe in a fun text grid (3x3 if needed).
+- Use bullet points for steps.
+- Keep answers short, fun, and clear.
+- If you don’t know, say “I don’t know that yet!”
+- Do not add extra info or explanations.
 
-ANSWER:"""
+ANSWER:
+"""
         
         return prompt
     
@@ -115,8 +126,8 @@ ANSWER:"""
                 "temperature": temperature,
                 "top_p": 0.9,
                 "top_k": 40,
-                "num_predict": 200,  # Limit response length
-                "num_ctx": 1024,     # Reduced from 2048 to 1024
+                "num_predict": 1000,  # Increased to 1000 tokens for longer responses
+                "num_ctx": 2048,     # Increased back to 2048 for better context
                 "repeat_penalty": 1.1
             }
         }
@@ -146,7 +157,8 @@ ANSWER:"""
         """
         
         # Step 1: Retrieve relevant context
-        context_docs = self.retrieve_context(query)
+        minecraft_query = f"Minecraft {query}"
+        context_docs = self.retrieve_context(minecraft_query)
         
         if not context_docs:
             return {

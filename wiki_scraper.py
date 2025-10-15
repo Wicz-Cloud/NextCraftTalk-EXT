@@ -15,7 +15,8 @@ import time
 from pathlib import Path
 from typing import List, Dict, Optional
 import re
-# from tqdm import tqdm
+from tqdm import tqdm
+import concurrent.futures
 
 # Optional: for vector embedding
 try:
@@ -229,17 +230,83 @@ class MinecraftWikiScraper:
 
         print(f"Total pages to scrape: {len(all_titles)}")
         documents = []
-        for title in sorted(all_titles):
-            doc = self.fetch_page_content(title)
-            if doc:
-                documents.append(doc)
-            time.sleep(0.5)
+        
+        # Multi-threaded fetching
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(self.fetch_page_content, title): title for title in sorted(all_titles)}
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Scraping pages"):
+                doc = future.result()
+                if doc:
+                    documents.append(doc)
+                time.sleep(0.1)  # Reduced sleep for politeness
+
+        return documents
+
+    def _clean_html_content(self, html_content: str) -> str:
+        """Clean HTML content similar to wiki pages."""
+        soup = BeautifulSoup(html_content, "html.parser")
+        
+        # Remove non-content elements
+        for tag in soup(["script", "style", "nav", "footer", "noscript", "header", "aside"]):
+            tag.decompose()
+        
+        # Remove tables that are not crafting-related (for consistency, though external sites may not have crafting tables)
+        for table in soup.find_all("table"):
+            table_text = table.get_text().lower()
+            if not any(keyword in table_text for keyword in ["crafting", "recipe", "ingredients", "grid"]):
+                table.decompose()
+            else:
+                # If it is crafting-related, convert it
+                table_str = self._convert_crafting_table_to_text(table)
+                table.replace_with(f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n")
+        
+        text = soup.get_text(" ", strip=True)
+        text = re.sub(r"\s+", " ", text)
+        return text
+
+    def scrape_urls(self, urls: List[str]) -> List[Dict]:
+        """Scrape content directly from a list of URLs with multi-threading and cleaning."""
+        documents = []
+        
+        def fetch_and_clean(url):
+            try:
+                response = requests.get(url, headers={"User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"}, timeout=15)
+                if response.status_code == 200:
+                    cleaned_content = self._clean_html_content(response.text)
+                    return {
+                        "url": url,
+                        "content": cleaned_content,
+                        "title": url.split("/")[-1] or "Untitled"
+                    }
+                else:
+                    print(f"Failed to fetch {url}: {response.status_code}")
+                    return None
+            except Exception as e:
+                print(f"Error fetching {url}: {e}")
+                return None
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(fetch_and_clean, url): url for url in urls}
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Scraping URLs"):
+                doc = future.result()
+                if doc:
+                    documents.append(doc)
+                time.sleep(0.5)  # Be polite to servers
 
         return documents
 
     def run(self):
         print("🚀 Starting Minecraft Wiki scraping...")
         docs = self.scrape_categories()
+
+        # Add new URLs to scrape
+        additional_urls = [
+            "https://www.minecraft.net/en-us/minecraft-tips-for-beginners",
+            "https://www.minecraft-crafting.net/",
+            "https://www.instructables.com/How-to-Be-Successful-Quickly-in-Minecraft",
+            "https://help.minecraft.net/hc/en-us/articles/360059154851-Minecraft-Beginners-Guide"
+        ]
+        docs.extend(self.scrape_urls(additional_urls))
 
         # Save full docs
         self.save_json(docs, "wiki_docs_full.json")
