@@ -5,7 +5,7 @@ Combines vector search with LLM generation via Ollama
 
 import requests
 from typing import List, Dict, Optional
-from vector_db import MinecraftVectorDB
+from ..data.vector_db import MinecraftVectorDB
 import json
 
 class MinecraftRAGPipeline:

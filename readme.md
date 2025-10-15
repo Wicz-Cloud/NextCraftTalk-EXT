@@ -12,6 +12,7 @@ A self-hosted, open-source chatbot that answers Minecraft questions using RAG (R
 - **Local LLM**: Runs entirely on your hardware (no cloud APIs)
 - **Nextcloud Talk Integration**: Responds naturally in chat conversations
 - **Lightweight**: Runs on Raspberry Pi 5 with 8GB RAM
+- **Modern Python**: Uses pyproject.toml, type hints, and comprehensive testing
 
 ## 🏗️ Architecture
 
@@ -35,7 +36,7 @@ User Query → Nextcloud Talk → Webhook → FastAPI Bot
 - **Raspberry Pi**: Works on Pi 5 with 8GB RAM
 
 ### Software
-- Python 3.12+ (3.13 recommended for latest packages)
+- Python 3.11+ (3.13 recommended for latest packages)
 - Docker & Docker Compose (optional but recommended)
 - Ollama (for local LLM)
 - Nextcloud instance with Talk app
@@ -46,8 +47,91 @@ User Query → Nextcloud Talk → Webhook → FastAPI Bot
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/minecraft-wiki-bot.git
-cd minecraft-wiki-bot
+git clone https://github.com/webwicz/mc_ai.git
+cd mc_ai
+
+# Copy environment template
+cp .env.example .env
+
+# Edit configuration
+nano .env
+```
+
+### 2. Development Setup
+
+```bash
+# Install with development dependencies
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run tests
+pytest
+
+# Run linting
+black .
+ruff check .
+mypy src/
+```
+
+### 3. Docker Setup
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+```
+
+### 4. Data Setup
+
+```bash
+# Scrape Minecraft wiki data
+python -m src.data.scraper
+
+# Setup vector database
+python -m src.data.vector_db
+```
+
+## 📁 Project Structure
+
+```
+mc_ai/
+├── src/                          # Source code
+│   ├── __init__.py
+│   ├── bot/                      # Bot components
+│   │   ├── __init__.py
+│   │   ├── __main__.py           # CLI entry point
+│   │   ├── api.py                # FastAPI application
+│   │   ├── message.py            # Message processing
+│   │   ├── nextcloud_api.py      # Nextcloud Talk API client
+│   │   └── security.py           # Webhook security
+│   ├── core/                     # Core utilities
+│   │   ├── __init__.py
+│   │   └── config.py             # Configuration management
+│   ├── data/                     # Data processing
+│   │   ├── __init__.py
+│   │   ├── scraper.py            # Wiki scraping
+│   │   └── vector_db.py          # Vector database
+│   └── rag/                      # RAG pipeline
+│       ├── __init__.py
+│       └── pipeline.py           # RAG implementation
+├── tests/                        # Test suite
+│   ├── __init__.py
+│   └── test_*.py
+├── docs/                         # Documentation
+│   ├── deployment_guide.md
+│   └── quick_reference.md
+├── scripts/                      # Utility scripts
+│   ├── deploy-and-setup.sh
+│   └── maintenance.sh
+├── docker/                       # Docker configuration
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── .env.example                  # Environment template
+├── pyproject.toml                # Modern Python packaging
+├── .pre-commit-config.yaml       # Code quality hooks
+└── README.md
+```
 
 # Run unified setup and deployment script
 chmod +x deploy-and-setup.sh

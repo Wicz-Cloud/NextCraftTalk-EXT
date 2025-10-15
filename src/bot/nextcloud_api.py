@@ -1,0 +1,192 @@
+"""
+Nextcloud Talk API client for the Minecraft bot
+"""
+
+import asyncio
+import logging
+from typing import Optional, Dict
+
+import requests
+
+from .config import settings
+
+logger = logging.getLogger(__name__)
+
+
+def send_thinking_message(token: str) -> Optional[int]:
+    """
+    Send thinking message and return its ID
+
+    Args:
+        token: Conversation token
+
+    Returns:
+        Optional[int]: Message ID if successful, None otherwise
+    """
+    base_url = f"{settings.nextcloud_url}/ocs/v2.php/apps/spreed/api/v1/chat/{token}"
+
+    headers = {
+        "OCS-APIRequest": "true",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+    }
+
+    data = {
+        "message": "🤔 Thinking...",
+        "replyTo": 0
+    }
+
+    try:
+        response = requests.post(base_url, headers=headers, json=data, timeout=10)
+        logger.info(f"Thinking message POST status: {response.status_code}, text: {response.text[:200]}")
+        if response.status_code == 201:
+            response_data = response.json()
+            message_id = response_data.get("ocs", {}).get("data", {}).get("id")
+            logger.info(f"✓ Thinking message sent, ID: {message_id}")
+            return message_id
+        else:
+            logger.error(f"Failed to send thinking message: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        logger.error(f"Error sending thinking message: {e}")
+        return None
+
+
+async def send_to_nextcloud_fallback(token: str, message: str) -> bool:
+    """
+    Fallback: send new message if editing fails
+
+    Args:
+        token: Conversation token
+        message: Message to send
+
+    Returns:
+        bool: True if successful
+    """
+    base_url = f"{settings.nextcloud_url}/ocs/v2.php/apps/spreed/api/v1/chat/{token}"
+
+    headers = {
+        "OCS-APIRequest": "true",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+    }
+
+    data = {
+        "message": message,
+        "replyTo": 0
+    }
+
+    def _send() -> bool:
+        try:
+            response = requests.post(base_url, headers=headers, json=data, timeout=10)
+            if response.status_code == 201:
+                logger.info(f"✓ Fallback message sent to conversation {token}")
+                return True
+            else:
+                logger.error(f"Failed to send fallback message: {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"Error sending fallback message: {e}")
+            return False
+
+    return await asyncio.to_thread(_send)
+
+
+async def edit_message(token: str, message_id: int, new_message: str) -> bool:
+    """
+    Edit a message in Nextcloud Talk
+
+    Args:
+        token: Conversation token
+        message_id: ID of message to edit
+        new_message: New message content
+
+    Returns:
+        bool: True if successful
+    """
+    base_url = f"{settings.nextcloud_url}/ocs/v2.php/apps/spreed/api/v1/chat/{token}"
+    edit_url = f"{base_url}/{message_id}"
+
+    headers = {
+        "OCS-APIRequest": "true",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+    }
+
+    data = {
+        "message": new_message
+    }
+
+    def _edit() -> bool:
+        try:
+            response = requests.put(edit_url, headers=headers, json=data, timeout=10)
+            if response.status_code == 200:
+                logger.info(f"✓ Message updated in conversation {token}")
+                return True
+            else:
+                logger.error(f"Failed to edit message: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            logger.error(f"Error editing message: {e}")
+            return False
+
+    return await asyncio.to_thread(_edit)
+
+
+async def delete_message(token: str, message_id: int) -> bool:
+    """
+    Delete a message in Nextcloud Talk
+
+    Args:
+        token: Conversation token
+        message_id: ID of message to delete
+
+    Returns:
+        bool: True if successful
+    """
+    base_url = f"{settings.nextcloud_url}/ocs/v2.php/apps/spreed/api/v1/chat/{token}"
+    delete_url = f"{base_url}/{message_id}"
+
+    headers = {
+        "OCS-APIRequest": "true",
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+    }
+
+    def _delete() -> bool:
+        try:
+            response = requests.delete(delete_url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                logger.info(f"✓ Message deleted in conversation {token}")
+                return True
+            else:
+                logger.error(f"Failed to delete message: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            logger.error(f"Error deleting message: {e}")
+            return False
+
+    return await asyncio.to_thread(_delete)
+
+
+def format_answer_markdown(result: Dict) -> str:
+    """
+    Format RAG result as markdown for Nextcloud
+
+    Args:
+        result: RAG pipeline result dictionary
+
+    Returns:
+        str: Formatted markdown message
+    """
+    answer = result['answer']
+
+    # Add sources if available
+    # if result.get('sources'):
+    #     answer += "\n\n📚 **Sources:**"
+    #     for source in result['sources'][:3]:
+    #     answer += f"\n• [{source['title']}]({source['url']})"
+
+    return answer
