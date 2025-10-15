@@ -68,7 +68,7 @@ Edit `.env` with your Nextcloud credentials (the script will create this file fo
 ```env
 NEXTCLOUD_URL=https://your-nextcloud.com
 NEXTCLOUD_BOT_TOKEN=your-bot-token-here
-SHARED_SECRET=your-shared-secret-here
+SHARED_SECRET=your-shared-secret-here  # Required for webhook signature verification
 BOT_NAME=MinecraftBot
 MODEL_NAME=phi3:mini
 ```
@@ -106,6 +106,15 @@ ollama pull phi3:mini
 # Run bot
 python nextcloud_bot.py
 ```
+
+## 🔒 Security
+
+The bot implements HMAC-SHA256 signature verification for Nextcloud Talk webhooks to ensure request authenticity:
+
+- **SHARED_SECRET**: Configure this environment variable with your Nextcloud Talk webhook secret
+- **Signature Verification**: All webhook requests are verified using HMAC-SHA256
+- **Fallback**: For local development, unsigned requests are accepted with warnings
+- **Secure Headers**: Uses proper authorization headers for Nextcloud API calls
 
 ### 4. Configure Nextcloud Talk
 

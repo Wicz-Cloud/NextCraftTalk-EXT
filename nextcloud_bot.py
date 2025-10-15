@@ -15,6 +15,7 @@ import hmac
 import hashlib
 import asyncio
 import json
+import base64
 
 from vector_db import MinecraftVectorDB
 from rag_pipeline import MinecraftRAGPipeline
@@ -143,13 +144,49 @@ def should_respond(message: str, actor_id: str) -> bool:
     return any(keyword in message_lower for keyword in minecraft_keywords)
 
 
-def clean_message(message: str) -> str:
-    """Remove bot mentions and clean message"""
-    # Remove @mentions
-    cleaned = message.replace(f"@{BOT_NAME}", "").strip()
-    cleaned = cleaned.replace(f"@{BOT_NAME.lower()}", "").strip()
+def verify_signature(raw_body: bytes, signature_header: str) -> bool:
+    """Verify Nextcloud Talk webhook signature"""
+    if not signature_header:
+        logger.warning("No signature header provided - accepting for local development")
+        return True  # Allow unsigned for local testing
     
-    return cleaned
+    if not SHARED_SECRET:
+        logger.warning("No SHARED_SECRET configured - accepting unsigned requests")
+        return True
+    
+    try:
+        # Compute expected signature
+        expected_signature = hmac.new(
+            SHARED_SECRET.encode('utf-8'),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Compare with provided signature (should be hex)
+        provided_signature = signature_header.lower().strip()
+        expected_hex = expected_signature.lower()
+        
+        # Use constant-time comparison to prevent timing attacks
+        if hmac.compare_digest(provided_signature, expected_hex):
+            logger.info("✓ Webhook signature verified")
+            return True
+        
+        # Try base64 decoding if hex fails
+        try:
+            import base64
+            provided_decoded = base64.b64decode(signature_header).hex()
+            if hmac.compare_digest(provided_decoded, expected_hex):
+                logger.info("✓ Webhook signature verified (base64)")
+                return True
+        except:
+            pass
+        
+        logger.warning(f"Invalid webhook signature. Expected: {expected_hex[:8]}..., Got: {provided_signature[:8]}...")
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error verifying signature: {e}")
+        return False
 
 
 def send_thinking_message(token: str) -> Optional[int]:
@@ -306,13 +343,18 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
     """
     logger.info("Webhook endpoint hit!")
     try:
-        # Parse webhook data
-        data = await request.json()
-        logger.info(f"Received webhook: {data}")
+        # Get raw request body for signature verification
+        raw_body = await request.body()
         
-        # Signature verification disabled for local Docker network deployment
-        # In a local container-to-container setup, signature verification is not required
-        # since the webhook endpoint is not exposed to external networks
+        # Verify webhook signature
+        signature_header = request.headers.get('X-Nextcloud-Talk-Signature')
+        if not verify_signature(raw_body, signature_header):
+            logger.warning("Invalid webhook signature - rejecting request")
+            raise HTTPException(status_code=401, detail="Invalid signature")
+        
+        # Parse webhook data
+        data = json.loads(raw_body.decode('utf-8'))
+        logger.info(f"Received webhook: {data}")
         
         # Parse ActivityPub webhook format from Nextcloud Talk
         if 'object' in data and 'content' in data['object']:
