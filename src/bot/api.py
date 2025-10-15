@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict
 
-from .config import settings
+from ..core.config import settings
 from .security import verify_signature
 from .message import should_respond, clean_message
 from .nextcloud_api import (

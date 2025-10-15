@@ -5,7 +5,7 @@ Message processing utilities for the Minecraft bot
 import logging
 from typing import Optional
 
-from .config import settings
+from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
