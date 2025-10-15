@@ -2,17 +2,18 @@
 Security utilities for webhook signature verification
 """
 
-import hmac
 import hashlib
+import hmac
 import logging
-from typing import Optional
 
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def verify_signature(raw_body: bytes, signature_header: str, random_header: str) -> bool:
+def verify_signature(
+    raw_body: bytes, signature_header: str, random_header: str
+) -> bool:
     """
     Verify Nextcloud Talk webhook signature
 
@@ -37,13 +38,11 @@ def verify_signature(raw_body: bytes, signature_header: str, random_header: str)
 
     try:
         # Nextcloud Talk signs: RANDOM_HEADER + REQUEST_BODY
-        message_to_sign = random_header.encode('utf-8') + raw_body
+        message_to_sign = random_header.encode("utf-8") + raw_body
 
         # Create HMAC-SHA256 signature
         expected_signature = hmac.new(
-            settings.shared_secret.encode('utf-8'),
-            message_to_sign,
-            hashlib.sha256
+            settings.shared_secret.encode("utf-8"), message_to_sign, hashlib.sha256
         ).hexdigest()
 
         provided_signature = signature_header.lower().strip()

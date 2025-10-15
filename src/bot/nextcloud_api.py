@@ -4,7 +4,6 @@ Nextcloud Talk API client for the Minecraft bot
 
 import asyncio
 import logging
-from typing import Optional, Dict
 
 import requests
 
@@ -13,7 +12,7 @@ from ..core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def send_thinking_message(token: str) -> Optional[int]:
+def send_thinking_message(token: str) -> int | None:
     """
     Send thinking message and return its ID
 
@@ -29,24 +28,25 @@ def send_thinking_message(token: str) -> Optional[int]:
         "OCS-APIRequest": "true",
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}",
     }
 
-    data = {
-        "message": "🤔 Thinking...",
-        "replyTo": 0
-    }
+    data = {"message": "🤔 Thinking...", "replyTo": 0}
 
     try:
         response = requests.post(base_url, headers=headers, json=data, timeout=10)
-        logger.info(f"Thinking message POST status: {response.status_code}, text: {response.text[:200]}")
+        logger.info(
+            f"Thinking message POST status: {response.status_code}, text: {response.text[:200]}"
+        )
         if response.status_code == 201:
             response_data = response.json()
             message_id = response_data.get("ocs", {}).get("data", {}).get("id")
             logger.info(f"✓ Thinking message sent, ID: {message_id}")
             return message_id
         else:
-            logger.error(f"Failed to send thinking message: {response.status_code} - {response.text}")
+            logger.error(
+                f"Failed to send thinking message: {response.status_code} - {response.text}"
+            )
             return None
     except Exception as e:
         logger.error(f"Error sending thinking message: {e}")
@@ -70,13 +70,10 @@ async def send_to_nextcloud_fallback(token: str, message: str) -> bool:
         "OCS-APIRequest": "true",
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}",
     }
 
-    data = {
-        "message": message,
-        "replyTo": 0
-    }
+    data = {"message": message, "replyTo": 0}
 
     def _send() -> bool:
         try:
@@ -113,12 +110,10 @@ async def edit_message(token: str, message_id: int, new_message: str) -> bool:
         "OCS-APIRequest": "true",
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}",
     }
 
-    data = {
-        "message": new_message
-    }
+    data = {"message": new_message}
 
     def _edit() -> bool:
         try:
@@ -127,7 +122,9 @@ async def edit_message(token: str, message_id: int, new_message: str) -> bool:
                 logger.info(f"✓ Message updated in conversation {token}")
                 return True
             else:
-                logger.error(f"Failed to edit message: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Failed to edit message: {response.status_code} - {response.text}"
+                )
                 return False
         except Exception as e:
             logger.error(f"Error editing message: {e}")
@@ -152,7 +149,7 @@ async def delete_message(token: str, message_id: int) -> bool:
 
     headers = {
         "OCS-APIRequest": "true",
-        "Authorization": f"Bearer {settings.nextcloud_bot_token}"
+        "Authorization": f"Bearer {settings.nextcloud_bot_token}",
     }
 
     def _delete() -> bool:
@@ -162,7 +159,9 @@ async def delete_message(token: str, message_id: int) -> bool:
                 logger.info(f"✓ Message deleted in conversation {token}")
                 return True
             else:
-                logger.error(f"Failed to delete message: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Failed to delete message: {response.status_code} - {response.text}"
+                )
                 return False
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
@@ -171,7 +170,7 @@ async def delete_message(token: str, message_id: int) -> bool:
     return await asyncio.to_thread(_delete)
 
 
-def format_answer_markdown(result: Dict) -> str:
+def format_answer_markdown(result: dict) -> str:
     """
     Format RAG result as markdown for Nextcloud
 
@@ -181,7 +180,7 @@ def format_answer_markdown(result: Dict) -> str:
     Returns:
         str: Formatted markdown message
     """
-    answer = result['answer']
+    answer = result["answer"]
 
     # Add sources if available
     # if result.get('sources'):

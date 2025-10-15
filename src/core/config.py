@@ -2,9 +2,9 @@
 Configuration management for Minecraft Wiki Bot
 """
 
-from pydantic_settings import BaseSettings
-from typing import Optional
 from pathlib import Path
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     nextcloud_bot_token: str
 
     # Security
-    shared_secret: Optional[str] = None
+    shared_secret: str | None = None
 
     # LLM configuration
     ollama_url: str = "http://ollama:11434"

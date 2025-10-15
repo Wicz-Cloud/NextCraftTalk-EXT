@@ -3,7 +3,6 @@ Message processing utilities for the Minecraft bot
 """
 
 import logging
-from typing import Optional
 
 from ..core.config import settings
 
@@ -31,9 +30,18 @@ def should_respond(message: str, actor_id: str) -> bool:
 
     # Respond to questions about Minecraft
     minecraft_keywords = [
-        "craft", "recipe", "how do i", "how to make",
-        "minecraft", "brewing", "enchant", "smelt",
-        "pickaxe", "sword", "armor", "potion"
+        "craft",
+        "recipe",
+        "how do i",
+        "how to make",
+        "minecraft",
+        "brewing",
+        "enchant",
+        "smelt",
+        "pickaxe",
+        "sword",
+        "armor",
+        "potion",
     ]
 
     message_lower = message.lower()
@@ -59,7 +67,7 @@ def clean_message(message: str) -> str:
     message_lower = message.lower()
     for prefix in prefixes_to_remove:
         if message_lower.startswith(prefix + " "):
-            message = message[len(prefix)+1:].strip()
+            message = message[len(prefix) + 1 :].strip()
             break
 
     return message

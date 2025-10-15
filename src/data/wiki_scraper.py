@@ -8,20 +8,21 @@ Requires:
     pip install requests beautifulsoup4 sentence-transformers chromadb tqdm
 """
 
-import requests
-from bs4 import BeautifulSoup
+import concurrent.futures
 import json
+import re
 import time
 from pathlib import Path
-from typing import List, Dict, Optional
-import re
+
+import requests
+from bs4 import BeautifulSoup
 from tqdm import tqdm
-import concurrent.futures
 
 # Optional: for vector embedding
 try:
     from chromadb import Client
     from sentence_transformers import SentenceTransformer
+
     EMBEDDING_DEPS_AVAILABLE = True
 except ImportError:
     EMBEDDING_DEPS_AVAILABLE = False
@@ -33,13 +34,13 @@ class MinecraftWikiScraper:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"
-        })
+        self.session.headers.update(
+            {"User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"}
+        )
         self.embed = embed and EMBEDDING_DEPS_AVAILABLE
         if embed and not EMBEDDING_DEPS_AVAILABLE:
             print("Warning: Embedding dependencies not available, disabling embedding")
-        
+
         if self.embed:
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
             self.chroma = Client()
@@ -48,7 +49,7 @@ class MinecraftWikiScraper:
     # ---------------------------------------------------------------------
     # 1. CATEGORY PAGE GATHERING
     # ---------------------------------------------------------------------
-    def get_category_pages(self, category: str) -> List[str]:
+    def get_category_pages(self, category: str) -> list[str]:
         """Fetch all pages in a given Minecraft Wiki category with pagination."""
         pages = []
         url = f"{self.base_url}/api.php"
@@ -81,7 +82,7 @@ class MinecraftWikiScraper:
     # ---------------------------------------------------------------------
     # 2. PAGE FETCHING AND CLEANING
     # ---------------------------------------------------------------------
-    def fetch_page_content(self, title: str) -> Optional[Dict]:
+    def fetch_page_content(self, title: str) -> dict | None:
         """Fetch and clean a wiki page using the MediaWiki API."""
         url = f"{self.base_url}/api.php"
         params = {
@@ -105,16 +106,21 @@ class MinecraftWikiScraper:
             # Remove non-content elements but preserve crafting tables
             for tag in soup(["script", "style", "nav", "footer", "noscript"]):
                 tag.decompose()
-            
-                        # Keep tables that contain crafting recipe (have specific classes or content)
+
+                # Keep tables that contain crafting recipe (have specific classes or content)
             for table in soup.find_all("table"):
                 # Check if this table contains crafting recipe information
                 table_text = table.get_text().lower()
-                if any(keyword in table_text for keyword in ["crafting", "recipe", "ingredients", "grid"]):
+                if any(
+                    keyword in table_text
+                    for keyword in ["crafting", "recipe", "ingredients", "grid"]
+                ):
                     # Convert table to readable text format
                     table_str = self._convert_crafting_table_to_text(table)
                     # Replace table with formatted recipe text
-                    table.replace_with(f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n")
+                    table.replace_with(
+                        f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n"
+                    )
                 else:
                     table.decompose()
 
@@ -136,10 +142,10 @@ class MinecraftWikiScraper:
             # Collect all text only from table cells, not from the entire table
             cells_text = []
             for cell in table.find_all(["td", "th"]):
-                cell_text = cell.get_text(separator=' ', strip=True)
+                cell_text = cell.get_text(separator=" ", strip=True)
                 if cell_text:
                     cells_text.append(cell_text)
-            
+
             # Extract item names from images in cells
             item_names = []
             for cell in table.find_all(["td", "th"]):
@@ -148,19 +154,28 @@ class MinecraftWikiScraper:
                     alt = img.get("alt", "")
                     if alt:
                         # Clean up the alt text
-                        alt = re.sub(r' \(item\)$', '', alt)
-                        alt = re.sub(r' \(block\)$', '', alt)
+                        alt = re.sub(r" \(item\)$", "", alt)
+                        alt = re.sub(r" \(block\)$", "", alt)
                         # Skip unwanted patterns
-                        if not any(skip in alt.lower() for skip in ['inventory sprite', 'invicon', 'sprite', 'linking to', 'with description']):
+                        if not any(
+                            skip in alt.lower()
+                            for skip in [
+                                "inventory sprite",
+                                "invicon",
+                                "sprite",
+                                "linking to",
+                                "with description",
+                            ]
+                        ):
                             if 2 <= len(alt) <= 30:
                                 item_names.append(alt)
-            
+
             # If we found item names from images, use those
             if len(item_names) >= 2:
                 # Remove duplicates
                 unique_items = list(dict.fromkeys(item_names))
                 return "Ingredients: " + " + ".join(unique_items)
-            
+
             # Fallback: try to extract reasonable words from cell text
             potential_items = []
             for text in cells_text:
@@ -168,20 +183,24 @@ class MinecraftWikiScraper:
                 for word in words:
                     word = word.strip()
                     # Look for capitalized words that look like item names
-                    if (len(word) >= 3 and len(word) <= 20 and 
-                        word[0].isupper() and 
-                        not word.startswith('(') and 
-                        not word.endswith(')') and
-                        word not in ['Crafting', 'Ingredients', 'Result', 'Recipe', 'Grid']):
+                    if (
+                        len(word) >= 3
+                        and len(word) <= 20
+                        and word[0].isupper()
+                        and not word.startswith("(")
+                        and not word.endswith(")")
+                        and word
+                        not in ["Crafting", "Ingredients", "Result", "Recipe", "Grid"]
+                    ):
                         potential_items.append(word)
-            
+
             if len(potential_items) >= 2:
                 unique_items = list(dict.fromkeys(potential_items))
                 return "Ingredients: " + " + ".join(unique_items[:4])
-            
+
             # Final fallback
             return "Crafting recipe available"
-                
+
         except Exception as e:
             print(f"Error converting crafting table: {e}")
             return "Crafting recipe available"
@@ -189,26 +208,24 @@ class MinecraftWikiScraper:
     # ---------------------------------------------------------------------
     # 3. CHUNKING LOGIC
     # ---------------------------------------------------------------------
-    def chunk_document(self, doc: Dict, chunk_size: int = 600) -> List[Dict]:
+    def chunk_document(self, doc: dict, chunk_size: int = 600) -> list[dict]:
         """Split document text into smaller chunks for embedding."""
         text = doc["content"]
         words = text.split()
         chunks = []
 
         for i in range(0, len(words), chunk_size):
-            chunk_words = words[i:i + chunk_size]
+            chunk_words = words[i : i + chunk_size]
             chunk_text = " ".join(chunk_words)
-            chunks.append({
-                "title": doc["title"],
-                "content": chunk_text,
-                "url": doc["url"]
-            })
+            chunks.append(
+                {"title": doc["title"], "content": chunk_text, "url": doc["url"]}
+            )
         return chunks
 
     # ---------------------------------------------------------------------
     # 4. STORAGE
     # ---------------------------------------------------------------------
-    def save_json(self, data: List[Dict], filename: str):
+    def save_json(self, data: list[dict], filename: str):
         path = self.output_dir / filename
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -217,9 +234,17 @@ class MinecraftWikiScraper:
     # ---------------------------------------------------------------------
     # 5. SCRAPING + EMBEDDING PIPELINE
     # ---------------------------------------------------------------------
-    def scrape_categories(self, categories: Optional[List[str]] = None) -> List[Dict]:
+    def scrape_categories(self, categories: list[str] | None = None) -> list[dict]:
         if categories is None:
-            categories = ["Crafting", "Smelting", "Brewing", "Enchanting", "Items", "Blocks", "Recipes"]
+            categories = [
+                "Crafting",
+                "Smelting",
+                "Brewing",
+                "Enchanting",
+                "Items",
+                "Blocks",
+                "Recipes",
+            ]
 
         all_titles = set()
         for cat in categories:
@@ -230,11 +255,18 @@ class MinecraftWikiScraper:
 
         print(f"Total pages to scrape: {len(all_titles)}")
         documents = []
-        
+
         # Multi-threaded fetching
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(self.fetch_page_content, title): title for title in sorted(all_titles)}
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Scraping pages"):
+            futures = {
+                executor.submit(self.fetch_page_content, title): title
+                for title in sorted(all_titles)
+            }
+            for future in tqdm(
+                concurrent.futures.as_completed(futures),
+                total=len(futures),
+                desc="Scraping pages",
+            ):
                 doc = future.result()
                 if doc:
                     documents.append(doc)
@@ -245,38 +277,51 @@ class MinecraftWikiScraper:
     def _clean_html_content(self, html_content: str) -> str:
         """Clean HTML content similar to wiki pages."""
         soup = BeautifulSoup(html_content, "html.parser")
-        
+
         # Remove non-content elements
-        for tag in soup(["script", "style", "nav", "footer", "noscript", "header", "aside"]):
+        for tag in soup(
+            ["script", "style", "nav", "footer", "noscript", "header", "aside"]
+        ):
             tag.decompose()
-        
+
         # Remove tables that are not crafting-related (for consistency, though external sites may not have crafting tables)
         for table in soup.find_all("table"):
             table_text = table.get_text().lower()
-            if not any(keyword in table_text for keyword in ["crafting", "recipe", "ingredients", "grid"]):
+            if not any(
+                keyword in table_text
+                for keyword in ["crafting", "recipe", "ingredients", "grid"]
+            ):
                 table.decompose()
             else:
                 # If it is crafting-related, convert it
                 table_str = self._convert_crafting_table_to_text(table)
-                table.replace_with(f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n")
-        
+                table.replace_with(
+                    f"\n\nCRAFTING RECIPE:\n{table_str}\n\n---RECIPE END---\n\n"
+                )
+
         text = soup.get_text(" ", strip=True)
         text = re.sub(r"\s+", " ", text)
         return text
 
-    def scrape_urls(self, urls: List[str]) -> List[Dict]:
+    def scrape_urls(self, urls: list[str]) -> list[dict]:
         """Scrape content directly from a list of URLs with multi-threading and cleaning."""
         documents = []
-        
+
         def fetch_and_clean(url):
             try:
-                response = requests.get(url, headers={"User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"}, timeout=15)
+                response = requests.get(
+                    url,
+                    headers={
+                        "User-Agent": "MinecraftRAGBot/1.1 (Open Source Educational Tool)"
+                    },
+                    timeout=15,
+                )
                 if response.status_code == 200:
                     cleaned_content = self._clean_html_content(response.text)
                     return {
                         "url": url,
                         "content": cleaned_content,
-                        "title": url.split("/")[-1] or "Untitled"
+                        "title": url.split("/")[-1] or "Untitled",
                     }
                 else:
                     print(f"Failed to fetch {url}: {response.status_code}")
@@ -284,10 +329,14 @@ class MinecraftWikiScraper:
             except Exception as e:
                 print(f"Error fetching {url}: {e}")
                 return None
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = {executor.submit(fetch_and_clean, url): url for url in urls}
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Scraping URLs"):
+            for future in tqdm(
+                concurrent.futures.as_completed(futures),
+                total=len(futures),
+                desc="Scraping URLs",
+            ):
                 doc = future.result()
                 if doc:
                     documents.append(doc)
@@ -304,7 +353,7 @@ class MinecraftWikiScraper:
             "https://www.minecraft.net/en-us/minecraft-tips-for-beginners",
             "https://www.minecraft-crafting.net/",
             "https://www.instructables.com/How-to-Be-Successful-Quickly-in-Minecraft",
-            "https://help.minecraft.net/hc/en-us/articles/360059154851-Minecraft-Beginners-Guide"
+            "https://help.minecraft.net/hc/en-us/articles/360059154851-Minecraft-Beginners-Guide",
         ]
         docs.extend(self.scrape_urls(additional_urls))
 
@@ -331,7 +380,9 @@ class MinecraftWikiScraper:
                 metadatas=metas,
                 ids=[f"chunk_{i}" for i in range(len(all_chunks))],
             )
-            print(f"✅ Added {len(all_chunks)} chunks to Chroma collection 'minecraft_wiki'")
+            print(
+                f"✅ Added {len(all_chunks)} chunks to Chroma collection 'minecraft_wiki'"
+            )
 
         print(f"🏁 Done! Scraped {len(docs)} pages and {len(all_chunks)} chunks.")
 
