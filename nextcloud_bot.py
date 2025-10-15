@@ -144,8 +144,29 @@ def should_respond(message: str, actor_id: str) -> bool:
     return any(keyword in message_lower for keyword in minecraft_keywords)
 
 
-def verify_signature(raw_body: bytes, signature_header: str) -> bool:
-    """Verify Nextcloud Talk webhook signature"""
+def clean_message(message: str) -> str:
+    """Clean and prepare message for processing"""
+    # Remove bot mentions
+    message = message.replace(f"@{BOT_NAME}", "").strip()
+    message = message.replace(f"@{BOT_NAME.lower()}", "").strip()
+    
+    # Remove common prefixes
+    prefixes_to_remove = ["hey", "hi", "hello", "bot"]
+    message_lower = message.lower()
+    for prefix in prefixes_to_remove:
+        if message_lower.startswith(prefix + " "):
+            message = message[len(prefix)+1:].strip()
+            break
+    
+    return message
+
+
+def verify_signature(raw_body: bytes, signature_header: str, random_header: str) -> bool:
+    """Verify Nextcloud Talk webhook signature
+    
+    Per Nextcloud Talk docs: Create HMAC with SHA256 over the RANDOM header 
+    and the request body using the shared secret.
+    """
     if not signature_header:
         logger.warning("No signature header provided - accepting for local development")
         return True  # Allow unsigned for local testing
@@ -155,34 +176,28 @@ def verify_signature(raw_body: bytes, signature_header: str) -> bool:
         return True
     
     try:
-        # Compute expected signature
+        # Nextcloud Talk signs: RANDOM_HEADER + REQUEST_BODY
+        message_to_sign = random_header.encode('utf-8') + raw_body
+        
+        # Create HMAC-SHA256 signature
         expected_signature = hmac.new(
             SHARED_SECRET.encode('utf-8'),
-            raw_body,
+            message_to_sign,
             hashlib.sha256
         ).hexdigest()
         
-        # Compare with provided signature (should be hex)
         provided_signature = signature_header.lower().strip()
-        expected_hex = expected_signature.lower()
         
-        # Use constant-time comparison to prevent timing attacks
-        if hmac.compare_digest(provided_signature, expected_hex):
+        logger.info(f"DEBUG: Random header: {random_header}")
+        logger.info(f"DEBUG: Expected signature: {expected_signature[:16]}...")
+        logger.info(f"DEBUG: Received signature: {provided_signature[:16]}...")
+        
+        if hmac.compare_digest(provided_signature, expected_signature.lower()):
             logger.info("✓ Webhook signature verified")
             return True
-        
-        # Try base64 decoding if hex fails
-        try:
-            import base64
-            provided_decoded = base64.b64decode(signature_header).hex()
-            if hmac.compare_digest(provided_decoded, expected_hex):
-                logger.info("✓ Webhook signature verified (base64)")
-                return True
-        except:
-            pass
-        
-        logger.warning(f"Invalid webhook signature. Expected: {expected_hex[:8]}..., Got: {provided_signature[:8]}...")
-        return False
+        else:
+            logger.warning(f"Invalid webhook signature")
+            return False
         
     except Exception as e:
         logger.error(f"Error verifying signature: {e}")
@@ -348,7 +363,8 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         
         # Verify webhook signature
         signature_header = request.headers.get('X-Nextcloud-Talk-Signature')
-        if not verify_signature(raw_body, signature_header):
+        random_header = request.headers.get('X-Nextcloud-Talk-Random', '')
+        if not verify_signature(raw_body, signature_header, random_header):
             logger.warning("Invalid webhook signature - rejecting request")
             raise HTTPException(status_code=401, detail="Invalid signature")
         

@@ -27,6 +27,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: minecraft_bot
+    env_file: .env
     ports:
       - "${BOT_PORT}:8000"
     volumes:
