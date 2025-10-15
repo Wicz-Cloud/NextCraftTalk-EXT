@@ -143,5 +143,13 @@ Thumbs.db
 minecraft_qa_dataset/*.jsonl
 minecraft_qa_dataset/*.faiss
 
+# ChromaDB vector database
+chroma_db/
+test_chroma_db/
+
+# Wiki data files
+wiki_data/
+wiki_data_backup_*/
+
 # ONNX models
 *.onnx
