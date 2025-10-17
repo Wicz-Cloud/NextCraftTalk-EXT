@@ -195,6 +195,42 @@ check_docker_resources() {
 }
 
 # ============================================================
+# DOCKER COMPOSE MODIFICATION FUNCTIONS
+# ============================================================
+
+modify_docker_compose_network() {
+    local compose_file="$PROJECT_DIR/docker-compose.yml"
+    local backup_file="$compose_file.backup"
+
+    log "Modifying docker-compose.yml to use network: $NETWORK_NAME"
+
+    # Create backup
+    cp "$compose_file" "$backup_file"
+
+    # Replace network references in services
+    sed -i.bak "s/      - nextcloud-aio/      - $NETWORK_NAME/g" "$compose_file"
+
+    # Replace network name in networks section
+    sed -i.bak "s/  nextcloud-aio:/  $NETWORK_NAME:/g" "$compose_file"
+
+    # Replace external network name
+    sed -i.bak "s/name: nextcloud-aio/name: $NETWORK_NAME/g" "$compose_file"
+
+    success "Docker Compose file updated to use network: $NETWORK_NAME"
+}
+
+restore_docker_compose() {
+    local compose_file="$PROJECT_DIR/docker-compose.yml"
+    local backup_file="$compose_file.backup"
+
+    if [ -f "$backup_file" ]; then
+        log "Restoring original docker-compose.yml"
+        mv "$backup_file" "$compose_file"
+        success "Docker Compose file restored"
+    fi
+}
+
+# ============================================================
 # DEPLOYMENT FUNCTIONS
 # ============================================================
 
@@ -445,7 +481,10 @@ main() {
     backup_dir=$(backup_existing_deployment)
 
     # Trap for rollback on error
-    trap "rollback_deployment '$backup_dir'" ERR
+    trap "restore_docker_compose; rollback_deployment '$backup_dir'" ERR
+
+    # Modify docker-compose.yml for the configured network
+    modify_docker_compose_network
 
     # Deploy containers
     if ! deploy_containers; then
@@ -473,6 +512,9 @@ main() {
 
     # Clear trap
     trap - ERR
+
+    # Note: docker-compose.yml has been modified to use network: $NETWORK_NAME
+    # This ensures future docker-compose commands work correctly
 
     # Show deployment status
     log "Deployment completed successfully"
