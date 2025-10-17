@@ -163,26 +163,27 @@ Choose the deployment method that best fits your environment.
 
 ### Unified Setup and Deployment (Recommended)
 
-The new unified script combines setup and deployment into a single seamless workflow:
+The enhanced deployment script combines setup and deployment into a single seamless workflow with safety checks:
 
 ```bash
 # Make script executable
-chmod +x deploy-and-setup.sh
+chmod +x scripts/deploy-enhanced.sh
 
-# Run unified setup and deployment
-./deploy-and-setup.sh docker production
+# Run enhanced setup and deployment
+./scripts/deploy-enhanced.sh docker production
 
 # This will automatically:
+# - Check for port/container/network conflicts
 # - Detect if initial setup is needed
-# - Create virtual environment
-# - Install dependencies
-# - Scrape wiki data (10-30 minutes)
-# - Build vector database
-# - Deploy based on chosen method
+# - Create virtual environment and install dependencies
+# - Scrape Minecraft knowledge base from multiple sources
+# - Build vector database with multi-threaded processing
+# - Pull required Ollama model
+# - Deploy based on chosen method with health checks
 ```
 
 **Available deployment types:**
-- `docker` - Docker Compose deployment (default)
+- `docker` - Docker Compose deployment (default, recommended)
 - `local` - Local deployment with Python virtual environment
 - `pi` or `raspberry-pi` - Raspberry Pi optimized deployment
 
@@ -193,14 +194,22 @@ chmod +x deploy-and-setup.sh
 **Examples:**
 ```bash
 # Docker deployment (production)
-./deploy-and-setup.sh docker production
+./scripts/deploy-enhanced.sh docker production
 
 # Local deployment (development)
-./deploy-and-setup.sh local development
+./scripts/deploy-enhanced.sh local development
 
 # Raspberry Pi deployment
-./deploy-and-setup.sh pi production
+./scripts/deploy-enhanced.sh pi production
 ```
+
+**Safety Features:**
+- Port conflict detection (checks ports 8000, 11434)
+- Container name conflict checking
+- Network conflict prevention
+- Automatic backup creation
+- Health checks after deployment
+- Rollback capability on failures
 
 ### Option A: Docker Deployment Details
 
@@ -234,16 +243,16 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Scrape wiki data
-python wiki_scraper.py
+python -m src.data.scraper
 
 # Build vector database
-python vector_db.py
+python -m src.data.vector_db
 
 # Start bot
-python nextcloud_bot.py
+python -m src.bot.api
 ```
 
 ### Option C: Raspberry Pi Specific
@@ -322,7 +331,7 @@ curl http://your-bot-server:8000/health
 python test_bot.py
 
 # Or use maintenance script
-./maintenance.sh
+./scripts/maintenance.sh
 # Select option 11 (Test Bot)
 ```
 
@@ -437,12 +446,12 @@ Add:
 crontab -e
 
 # Add:
-0 2 * * * cd /home/user/minecraft-bot && ./maintenance.sh backup
+0 2 * * * cd /home/user/minecraft-bot && ./scripts/maintenance.sh backup
 ```
 
 Or use maintenance script:
 ```bash
-./maintenance.sh
+./scripts/maintenance.sh
 # Select option 3 (Backup Data)
 ```
 
@@ -503,12 +512,12 @@ htop
 
 **Rebuild vector database:**
 ```bash
-./maintenance.sh
+./scripts/maintenance.sh
 # Select option 7 (Rebuild Vector DB)
 
 # Or manually:
 rm -rf chroma_db
-python vector_db.py
+python -m src.data.vector_db
 ```
 
 **Verify wiki data:**
@@ -557,7 +566,7 @@ BATCH_SIZE=10
 ### Getting Help
 
 1. Check logs: `docker-compose logs` or `tail -f logs/bot.log`
-2. Run diagnostics: `./maintenance.sh` → Option 1
+2. Run diagnostics: `./scripts/maintenance.sh` → Option 1
 3. Test components: `python test_bot.py`
 4. Check GitHub issues
 5. Review Nextcloud Talk webhook documentation
@@ -573,10 +582,10 @@ Your Minecraft Wiki Bot should now be:
 - ✅ Running reliably in production
 
 **Next Steps:**
-- Monitor performance with `./maintenance.sh`
+- Monitor performance with `./scripts/maintenance.sh`
 - Schedule regular wiki updates
 - Configure automated backups
-- Customize responses in `rag_pipeline.py`
+- Customize responses in `src/rag/pipeline.py`
 - Add more features as needed
 
 Happy crafting! 🎮⛏️

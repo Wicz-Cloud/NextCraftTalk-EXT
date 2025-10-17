@@ -3,8 +3,8 @@
 ## 📦 One-Line Deployment
 
 ```bash
-# Complete setup and deployment
-git clone <repo> && cd minecraft-wiki-bot && chmod +x deploy-and-setup.sh && ./deploy-and-setup.sh docker production
+# Complete setup and deployment with conflict checks
+git clone <repo> && cd minecraft-wiki-bot && chmod +x scripts/deploy-enhanced.sh && ./scripts/deploy-enhanced.sh docker production
 ```
 
 ## 🔧 Common Commands
@@ -51,12 +51,12 @@ nohup python nextcloud_bot.py > logs/bot.log 2>&1 &
 ### Maintenance
 ```bash
 # Interactive maintenance menu
-./maintenance.sh
+./scripts/maintenance.sh
 
 # Quick commands
-./maintenance.sh status       # Check status
-./maintenance.sh backup       # Backup data
-./maintenance.sh test         # Run tests
+./scripts/maintenance.sh status       # Check status
+./scripts/maintenance.sh backup       # Backup data
+./scripts/maintenance.sh test         # Run tests
 ```
 
 ## 🧪 Testing
@@ -105,10 +105,10 @@ python wiki_scraper.py
 python vector_db.py
 
 # Update dependencies
-pip install --upgrade -r requirements.txt
+pip install --upgrade -e .
 
 # Pull latest code
-git pull && pip install -r requirements.txt
+git pull && pip install -e .
 
 # Backup everything
 tar -czf backup_$(date +%Y%m%d).tar.gz wiki_data chroma_db .env
@@ -163,10 +163,10 @@ curl -I https://your-nextcloud.com
 docker-compose logs minecraft_bot | grep -i error
 
 # Verify vector DB
-python3 -c "from vector_db import MinecraftVectorDB; db=MinecraftVectorDB(); print(db.get_collection_stats())"
+python3 -c "from src.data.vector_db import MinecraftVectorDB; db=MinecraftVectorDB(); print(db.get_collection_stats())"
 
 # Test RAG pipeline
-python3 rag_pipeline.py
+python -m src.rag.pipeline
 
 # Check Ollama connection
 python3 -c "import requests; print(requests.get('http://localhost:11434/api/tags').json())"
@@ -177,12 +177,16 @@ python3 -c "import requests; print(requests.get('http://localhost:11434/api/tags
 ```
 minecraft-wiki-bot/
 ├── .env                      # Configuration (DO NOT COMMIT)
-├── wiki_data/
-│   ├── wiki_docs_full.json   # Complete wiki pages
-│   └── wiki_docs_chunks.json # Chunked documents
+├── src/                      # Source code
+│   ├── bot/                  # API and webhook handling
+│   ├── core/                 # Configuration and utilities
+│   ├── data/                 # Wiki scraping and vector database
+│   └── rag/                  # RAG pipeline
+├── scripts/                  # Deployment and maintenance scripts
+├── docs/                     # Documentation
+├── wiki_data/                # Scraped wiki content
 ├── chroma_db/                # Vector database
-├── logs/
-│   └── bot.log               # Application logs
+├── logs/                     # Application logs
 └── backups/                  # Backup archives
 ```
 
@@ -256,7 +260,7 @@ MAX_WORKERS=8
 docker-compose restart minecraft_bot
 
 # or
-kill $(cat bot.pid) && nohup python3 nextcloud_bot.py > logs/bot.log 2>&1 &
+kill $(cat bot.pid) && nohup python -m src.bot.api > logs/bot.log 2>&1 &
 
 # Restore from backup
 tar -xzf backups/backup_YYYYMMDD.tar.gz
@@ -265,7 +269,7 @@ docker-compose restart
 # Reset everything (nuclear option)
 docker-compose down
 rm -rf chroma_db
-python3 vector_db.py
+python -m src.data.vector_db
 docker-compose up -d
 ```
 
@@ -301,7 +305,7 @@ http://localhost:11434/api/tags    # List models
 
 1. **Always backup before updates**
    ```bash
-   ./maintenance.sh  # Option 3: Backup
+   ./scripts/maintenance.sh  # Option 3: Backup
    ```
 
 2. **Update wiki data regularly**
@@ -317,15 +321,15 @@ http://localhost:11434/api/tags    # List models
 
 5. **Test after every change**
    ```bash
-   python test_bot.py
+   python -m pytest tests/
    ```
 
 ## 📚 Documentation Quick Links
 
 - Full README: `README.md`
-- Deployment Guide: `DEPLOYMENT_GUIDE.md`
-- Test Suite: `test_bot.py`
-- Maintenance: `./maintenance.sh`
+- Deployment Guide: `docs/deployment_guide.md`
+- API Documentation: `src/bot/api.py`
+- Maintenance: `./scripts/maintenance.sh`
 
 ## 🆘 Common Issues & Fixes
 
@@ -342,15 +346,15 @@ http://localhost:11434/api/tags    # List models
 
 ```bash
 # Explore the code
-cat wiki_scraper.py      # How wiki scraping works
-cat vector_db.py         # How vector search works
-cat rag_pipeline.py      # How RAG generation works
-cat nextcloud_bot.py     # How webhook handling works
+cat src/data/scraper.py      # How wiki scraping works
+cat src/data/vector_db.py    # How vector search works
+cat src/rag/pipeline.py      # How RAG generation works
+cat src/bot/api.py           # How webhook handling works
 
 # Test components individually
-python3 wiki_scraper.py  # Scrape wiki
-python3 vector_db.py     # Build/test vector DB
-python3 rag_pipeline.py  # Test RAG pipeline
+python -m src.data.scraper   # Scrape wiki
+python -m src.data.vector_db # Build/test vector DB
+python -m src.rag.pipeline   # Test RAG pipeline
 ```
 
 ---
