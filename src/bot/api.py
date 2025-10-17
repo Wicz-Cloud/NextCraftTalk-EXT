@@ -101,6 +101,25 @@ async def root():
 
 
 @app.get("/health")
+async def health():
+    """Detailed health check endpoint"""
+    health_status = {
+        "status": "healthy",
+        "components": {
+            "vector_db": vector_db is not None,
+            "rag_pipeline": rag_pipeline is not None,
+        },
+        "bot_name": settings.bot_name,
+    }
+    
+    # Check if all components are initialized
+    if not all(health_status["components"].values()):
+        health_status["status"] = "unhealthy"
+    
+    return health_status
+
+
+@app.get("/health")
 async def health_check():
     """Detailed health check"""
     health = {
