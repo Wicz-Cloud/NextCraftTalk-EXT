@@ -22,8 +22,9 @@ chmod +x scripts/deployment.sh
 ./scripts/deployment.sh docker production
 ```
 
-This automatically:
+The deployment script automatically:
 - Sets up Docker containers (bot + Ollama)
+- **Configures networks** based on your `NETWORK_NAME` setting
 - Scrapes Minecraft wiki data
 - Builds knowledge base
 - Configures the bot

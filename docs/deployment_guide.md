@@ -134,33 +134,7 @@ BOT_NAME=MinecraftBot
 MODEL_NAME=phi3:mini
 ```
 
-**Get Nextcloud Bot Token:**
-Step 1: Create a Bot User Account
-
-Go to User Management
-
-Settings → Users (you need admin access)
-Click "New user"
-Create account:
-
-
-
-     Username: minecraft-bot
-     Display name: Minecraft Helper
-     Email: (optional)
-
-Log in as the bot user and generate an app password:
-
-Go to Settings → Security → Devices & sessions
-Create new app password named "Talk Bot"
-Copy this password - this is your bot token!
-
-**Configure Docker Network:**
-Set the `NETWORK_NAME` in your `.env` file based on your Nextcloud setup:
-
-- **Nextcloud AIO**: `NETWORK_NAME=nextcloud-aio` (default)
-- **Standalone Nextcloud + nginx**: `NETWORK_NAME=bridge`
-- **Custom network**: `NETWORK_NAME=your-custom-network-name`
+**Note:** The deployment script will modify your `docker-compose.yml` file to use the configured `NETWORK_NAME`. This ensures that future `docker-compose` commands work correctly with your network setup. A backup of the original file is created before modification.
 
 ---
 
@@ -179,14 +153,15 @@ chmod +x scripts/deployment.sh
 # Run enhanced setup and deployment
 ./scripts/deployment.sh docker production
 
-# This will automatically:
-# - Check for port/container/network conflicts
-# - Detect if initial setup is needed
-# - Create virtual environment and install dependencies
-# - Scrape Minecraft knowledge base from multiple sources
-# - Build vector database with multi-threaded processing
-# - Pull required Ollama model
-# - Deploy based on chosen method with health checks
+The enhanced deployment script automatically:
+- Checks for port/container/network conflicts
+- **Dynamically configures docker-compose.yml** with your chosen network
+- Detects if initial setup is needed
+- Creates virtual environment and installs dependencies
+- Scrapes Minecraft knowledge base from multiple sources
+- Builds vector database with multi-threaded processing
+- Pulls required Ollama model
+- Deploys based on chosen method with health checks
 ```
 
 **Available deployment types:**
