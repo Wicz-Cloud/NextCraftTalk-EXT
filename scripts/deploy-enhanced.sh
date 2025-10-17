@@ -21,8 +21,15 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Configuration
 REQUIRED_PORTS=("8000" "11434")  # Bot port, Ollama port
 CONTAINER_NAMES=("minecraft_bot" "ollama")
-NETWORK_NAME="nextcloud-aio"
 OLLAMA_MODEL="phi3:mini"
+
+# Load environment variables from .env file if it exists
+if [ -f "$PROJECT_DIR/.env" ]; then
+    source "$PROJECT_DIR/.env"
+fi
+
+# Network configuration (configurable via environment)
+NETWORK_NAME="${NETWORK_NAME:-nextcloud-aio}"
 
 # Logging
 LOG_FILE="$PROJECT_DIR/logs/deploy_$(date +%Y%m%d_%H%M%S).log"

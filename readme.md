@@ -108,6 +108,10 @@ Edit `.env` file:
 NEXTCLOUD_URL=https://your-nextcloud.com
 NEXTCLOUD_BOT_TOKEN=your-bot-token-here
 
+# Docker Network (choose based on your Nextcloud setup)
+NETWORK_NAME=nextcloud-aio  # For Nextcloud AIO
+# NETWORK_NAME=bridge       # For standalone Nextcloud + nginx
+
 # Bot Settings
 BOT_NAME=MinecraftBot
 MODEL_NAME=phi3:mini  # or gemma2:2b, mistral:7b-instruct

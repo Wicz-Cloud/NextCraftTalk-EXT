@@ -9,7 +9,7 @@ git clone <repo> && cd minecraft-wiki-bot && chmod +x scripts/deploy-enhanced.sh
 
 ## 🔧 Common Commands
 
-### Docker Operations
+## 🐳 Docker Operations
 ```bash
 # Start services
 docker-compose up -d
@@ -28,6 +28,21 @@ docker-compose build --no-cache
 
 # Check status
 docker-compose ps
+```
+
+## 🌐 Network Configuration
+
+Configure the Docker network in `.env`:
+
+```bash
+# For Nextcloud AIO
+NETWORK_NAME=nextcloud-aio
+
+# For standalone Nextcloud + nginx
+NETWORK_NAME=bridge
+
+# For custom networks
+NETWORK_NAME=my-custom-network
 ```
 
 ### Local Operations

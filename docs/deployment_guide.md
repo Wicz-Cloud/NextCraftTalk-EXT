@@ -155,6 +155,13 @@ Go to Settings → Security → Devices & sessions
 Create new app password named "Talk Bot"
 Copy this password - this is your bot token!
 
+**Configure Docker Network:**
+Set the `NETWORK_NAME` in your `.env` file based on your Nextcloud setup:
+
+- **Nextcloud AIO**: `NETWORK_NAME=nextcloud-aio` (default)
+- **Standalone Nextcloud + nginx**: `NETWORK_NAME=bridge`
+- **Custom network**: `NETWORK_NAME=your-custom-network-name`
+
 ---
 
 ## 3. Deployment Options
