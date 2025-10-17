@@ -13,8 +13,10 @@ from vector_db import MinecraftVectorDB
 class TestVectorDatabase(unittest.TestCase):
     """Test vector database functionality"""
 
+    db: MinecraftVectorDB
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Initialize test database"""
         cls.db = MinecraftVectorDB(
             persist_directory="./test_chroma_db", collection_name="test_minecraft"
@@ -24,18 +26,20 @@ class TestVectorDatabase(unittest.TestCase):
         test_docs = [
             {
                 "title": "Diamond Pickaxe",
-                "content": "A diamond pickaxe is crafted with 3 diamonds and 2 sticks. Place diamonds across the top row and sticks down the middle.",
+                "content": "A diamond pickaxe is crafted with 3 diamonds and 2 sticks. "
+                "Place diamonds across the top row and sticks down the middle.",
                 "url": "https://minecraft.wiki/w/Diamond_Pickaxe",
             },
             {
                 "title": "Crafting Table",
-                "content": "A crafting table is made from 4 wooden planks arranged in a 2x2 pattern.",
+                "content": "A crafting table is made from 4 wooden planks "
+                "arranged in a 2x2 pattern.",
                 "url": "https://minecraft.wiki/w/Crafting_Table",
             },
         ]
         cls.db.add_documents(test_docs)
 
-    def test_search_relevant_results(self):
+    def test_search_relevant_results(self) -> None:
         """Test that search returns relevant results"""
         results = self.db.search("how to craft diamond pickaxe", n_results=2)
 
@@ -43,7 +47,7 @@ class TestVectorDatabase(unittest.TestCase):
         self.assertIn("Diamond Pickaxe", results[0]["title"])
         self.assertGreater(results[0]["score"], 0.5)
 
-    def test_collection_stats(self):
+    def test_collection_stats(self) -> None:
         """Test collection statistics"""
         stats = self.db.get_collection_stats()
 
@@ -54,15 +58,18 @@ class TestVectorDatabase(unittest.TestCase):
 class TestRAGPipeline(unittest.TestCase):
     """Test RAG pipeline functionality"""
 
+    db: MinecraftVectorDB
+    rag: MinecraftRAGPipeline
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Initialize RAG pipeline"""
         cls.db = MinecraftVectorDB(
             persist_directory="./test_chroma_db", collection_name="test_minecraft"
         )
         cls.rag = MinecraftRAGPipeline(cls.db)
 
-    def test_context_retrieval(self):
+    def test_context_retrieval(self) -> None:
         """Test context retrieval"""
         context = self.rag.retrieve_context("diamond pickaxe recipe")
 
@@ -70,7 +77,7 @@ class TestRAGPipeline(unittest.TestCase):
         self.assertGreater(len(context), 0)
         self.assertIn("content", context[0])
 
-    def test_prompt_building(self):
+    def test_prompt_building(self) -> None:
         """Test prompt construction"""
         context_docs = [
             {"title": "Test Item", "content": "Test content", "url": "http://test.com"}
@@ -81,7 +88,7 @@ class TestRAGPipeline(unittest.TestCase):
         self.assertIn("test query", prompt.lower())
         self.assertIn("Test content", prompt)
 
-    def test_answer_generation(self):
+    def test_answer_generation(self) -> None:
         """Test complete answer generation"""
         result = self.rag.answer_question("How do I craft a diamond pickaxe?")
 
@@ -96,7 +103,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     BASE_URL = "http://localhost:8000"
 
-    def test_health_endpoint(self):
+    def test_health_endpoint(self) -> None:
         """Test health check endpoint"""
         try:
             response = requests.get(f"{self.BASE_URL}/health", timeout=5)
@@ -110,7 +117,7 @@ class TestAPIEndpoints(unittest.TestCase):
         except requests.exceptions.ConnectionError:
             self.skipTest("Bot service not accessible")
 
-    def test_root_endpoint(self):
+    def test_root_endpoint(self) -> None:
         """Test root endpoint"""
         try:
             response = requests.get(f"{self.BASE_URL}/", timeout=5)
@@ -122,7 +129,7 @@ class TestAPIEndpoints(unittest.TestCase):
         except requests.exceptions.ConnectionError:
             self.skipTest("Bot service not accessible")
 
-    def test_query_endpoint(self):
+    def test_query_endpoint(self) -> None:
         """Test query endpoint"""
         try:
             response = requests.post(
@@ -138,7 +145,7 @@ class TestAPIEndpoints(unittest.TestCase):
         except requests.exceptions.ConnectionError:
             self.skipTest("Bot service not accessible")
 
-    def test_stats_endpoint(self):
+    def test_stats_endpoint(self) -> None:
         """Test statistics endpoint"""
         try:
             response = requests.get(f"{self.BASE_URL}/stats", timeout=5)
@@ -153,7 +160,7 @@ class TestAPIEndpoints(unittest.TestCase):
 class TestIntegration(unittest.TestCase):
     """Integration tests for complete workflow"""
 
-    def test_end_to_end_query(self):
+    def test_end_to_end_query(self) -> None:
         """Test complete query flow"""
         # Initialize components
         db = MinecraftVectorDB()
@@ -169,7 +176,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIsInstance(result["answer"], str)
 
 
-def run_tests():
+def run_tests() -> bool:
     """Run all tests"""
     print("=" * 60)
     print("Running Minecraft Wiki Bot Test Suite")

@@ -333,6 +333,28 @@ setup_ollama_model() {
     return 1
 }
 
+setup_knowledge_base() {
+    log "Setting up Minecraft knowledge base (scraping wiki data)"
+
+    # Check if wiki data already exists
+    if [ -f "$PROJECT_DIR/wiki_data/wiki_docs_full.json" ] && [ -f "$PROJECT_DIR/wiki_data/wiki_docs_chunks.json" ]; then
+        log "Wiki data already exists, skipping scraping"
+        success "Knowledge base is ready"
+        return 0
+    fi
+
+    log "Running wiki scraper to build knowledge base..."
+
+    # Run the scraper from within the bot container
+    if docker-compose exec -T minecraft_bot python -m src.data.wiki_scraper; then
+        success "Wiki scraping completed successfully"
+        return 0
+    else
+        error "Wiki scraping failed"
+        return 1
+    fi
+}
+
 wait_for_services() {
     log "Waiting for services to be ready..."
 
@@ -495,6 +517,12 @@ main() {
     # Setup Ollama model
     if ! setup_ollama_model; then
         error "Ollama model setup failed"
+        exit 1
+    fi
+
+    # Setup knowledge base
+    if ! setup_knowledge_base; then
+        error "Knowledge base setup failed"
         exit 1
     fi
 

@@ -67,8 +67,8 @@ class NextcloudMessage(BaseModel):
     message_id: int | None = None
 
 
-@app.on_event("startup")
-async def startup_event():
+@app.on_event("startup")  # type: ignore
+async def startup_event() -> None:
     """Initialize RAG components on startup"""
     global vector_db, rag_pipeline
 
@@ -92,14 +92,14 @@ async def startup_event():
         raise
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
+@app.on_event("shutdown")  # type: ignore
+async def shutdown_event() -> None:
     """Cleanup on shutdown"""
     logger.info("Bot shutdown complete")
 
 
-@app.get("/")
-async def root():
+@app.get("/")  # type: ignore
+async def root() -> dict:
     """Health check endpoint"""
     return {
         "status": "running",
@@ -108,8 +108,8 @@ async def root():
     }
 
 
-@app.get("/health")
-async def health_check():
+@app.get("/health")  # type: ignore
+async def health_check() -> dict:
     """Detailed health check"""
     health = {
         "status": "healthy",
@@ -228,16 +228,18 @@ def send_thinking_message(token: str) -> int | None:
     try:
         response = requests.post(base_url, headers=headers, json=data, timeout=10)
         logger.info(
-            f"Thinking message POST status: {response.status_code}, text: {response.text[:200]}"
+            f"Thinking message POST status: {response.status_code}, "
+            f"text: {response.text[:200]}"
         )
         if response.status_code == 201:
             response_data = response.json()
             message_id = response_data.get("ocs", {}).get("data", {}).get("id")
             logger.info(f"✓ Thinking message sent, ID: {message_id}")
-            return message_id
+            return int(message_id) if message_id is not None else None
         else:
             logger.error(
-                f"Failed to send thinking message: {response.status_code} - {response.text}"
+                f"Failed to send thinking message: {response.status_code} - "
+                f"{response.text}"
             )
             return None
     except Exception as e:
@@ -245,7 +247,7 @@ def send_thinking_message(token: str) -> int | None:
         return None
 
 
-async def send_to_nextcloud_fallback(token: str, message: str):
+async def send_to_nextcloud_fallback(token: str, message: str) -> None:
     """Fallback: send new message if editing fails"""
     base_url = f"{NEXTCLOUD_URL}/ocs/v2.php/apps/spreed/api/v1/chat/{token}"
 
@@ -258,7 +260,7 @@ async def send_to_nextcloud_fallback(token: str, message: str):
 
     data = {"message": message, "replyTo": 0}
 
-    def _send():
+    def _send() -> bool:
         try:
             response = requests.post(base_url, headers=headers, json=data, timeout=10)
             if response.status_code == 201:
@@ -274,17 +276,28 @@ async def send_to_nextcloud_fallback(token: str, message: str):
     await asyncio.to_thread(_send)
 
 
-async def process_and_respond(token: str, query: str, thinking_message_id: int):
+async def process_and_respond(
+    token: str, query: str, thinking_message_id: int | None
+) -> None:
     """Process the query and send response, then delete thinking message"""
     try:
         # Generate response
-        response = rag_pipeline.answer_question(query)["answer"]
+        if rag_pipeline is None:
+            response = "Bot is not initialized yet."
+        else:
+            result = rag_pipeline.answer_question(query)
+            response = (
+                str(result["answer"])
+                if result and "answer" in result
+                else "I couldn't generate a response."
+            )
 
         # Send the answer as a new message
         await send_to_nextcloud_fallback(token, response)
 
         # Delete the thinking message
-        await delete_message(token, thinking_message_id)
+        if thinking_message_id is not None:
+            await delete_message(token, thinking_message_id)
 
     except Exception as e:
         logger.error(f"Error in process_and_respond: {e}")
@@ -330,7 +343,7 @@ async def delete_message(token: str, message_id: int) -> bool:
 
     headers = {"OCS-APIRequest": "true", "Authorization": f"Bearer {NEXTCLOUD_TOKEN}"}
 
-    def _delete():
+    def _delete() -> bool:
         try:
             response = requests.delete(delete_url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -338,7 +351,8 @@ async def delete_message(token: str, message_id: int) -> bool:
                 return True
             else:
                 logger.error(
-                    f"Failed to delete message: {response.status_code} - {response.text}"
+                    f"Failed to delete message: {response.status_code} - "
+                    f"{response.text}"
                 )
                 return False
         except Exception as e:
@@ -350,7 +364,7 @@ async def delete_message(token: str, message_id: int) -> bool:
 
 def format_answer_markdown(result: dict) -> str:
     """Format RAG result as markdown for Nextcloud"""
-    answer = result["answer"]
+    answer = str(result["answer"])
 
     # Add sources if available
     #   if result.get('sources'):
@@ -361,8 +375,8 @@ def format_answer_markdown(result: dict) -> str:
     return answer
 
 
-@app.post("/webhook")
-async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
+@app.post("/webhook")  # type: ignore
+async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -> dict:
     """
     Handle incoming webhooks from Nextcloud Talk
     """
@@ -374,7 +388,7 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         # Verify webhook signature
         signature_header = request.headers.get("X-Nextcloud-Talk-Signature")
         random_header = request.headers.get("X-Nextcloud-Talk-Random", "")
-        if not verify_signature(raw_body, signature_header, random_header):
+        if not verify_signature(raw_body, signature_header or "", random_header):
             logger.warning("Invalid webhook signature - rejecting request")
             raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -421,27 +435,37 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         thinking_message_id = send_thinking_message(token)
 
         # Process in background
-        asyncio.create_task(process_and_respond(token, query, thinking_message_id))
+        if thinking_message_id is not None:
+            asyncio.create_task(process_and_respond(token, query, thinking_message_id))
+        else:
+            asyncio.create_task(process_and_respond(token, query, 0))  # Fallback
         return {"status": "success"}
 
     except Exception as e:
         logger.error(f"Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/test-query")
-async def test_query(query: str):
+@app.post("/test-query")  # type: ignore
+async def test_query(query: str) -> dict:
     """Test endpoint for debugging (no Nextcloud required)"""
     logger.info(f"Test query: {query}")
 
     # Query RAG
-    result = rag_pipeline.answer_question(query)
+    if rag_pipeline is None:
+        result = {"answer": "Bot is not initialized yet."}
+    else:
+        result = rag_pipeline.answer_question(query)
+        if result and "answer" in result:
+            result = result
+        else:
+            result = {"answer": "No result"}
 
     return {"result": result, "source": "rag"}
 
 
-@app.get("/stats")
-async def get_stats():
+@app.get("/stats")  # type: ignore
+async def get_stats() -> dict:
     """Get bot statistics"""
     stats = {}
 

@@ -57,24 +57,33 @@ class NextcloudMessage(BaseModel):
     message_id: int | None = None
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize RAG components on startup"""
+@app.on_event("startup")  # type: ignore
+async def startup_event() -> None:
+    """Initialize RAG components on startup
+
+    Loads vector database, initializes RAG pipeline with file watching,
+    and tests Ollama connection. Dependencies:
+    - ChromaDB data in chroma_db/ directory
+    - Ollama service running (configured in docker-compose.yml)
+    - prompt_template.txt file (mounted via docker volume)
+    """
     global vector_db, rag_pipeline
 
     logger.info("🚀 Starting Minecraft Wiki Bot...")
 
     try:
-        # Initialize vector database
+        # Initialize vector database (loads from chroma_db/ volume)
         logger.info("Loading vector database...")
         vector_db = MinecraftVectorDB()
 
-        # Initialize RAG pipeline
+        # Initialize RAG pipeline with file watching for prompt_template.txt
         logger.info("Initializing RAG pipeline...")
         rag_pipeline = MinecraftRAGPipeline(
             vector_db=vector_db,
-            ollama_url=settings.ollama_url,
-            model_name=settings.model_name,
+            ollama_url=settings.ollama_url,  # From OLLAMA_URL in .env
+            model_name=settings.model_name,  # From MODEL_NAME in .env
+            prompt_template_path=settings.prompt_template_path,
+            # From PROMPT_TEMPLATE_PATH
         )
 
         logger.info("✓ Bot ready!")
@@ -84,14 +93,20 @@ async def startup_event():
         raise
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
+@app.on_event("shutdown")  # type: ignore
+async def shutdown_event() -> None:
+    """Cleanup on shutdown
+
+    Stops file watcher and cleans up resources.
+    """
+    global rag_pipeline
+    if rag_pipeline:
+        rag_pipeline.stop_file_watcher()
     logger.info("Bot shutdown complete")
 
 
-@app.get("/")
-async def root():
+@app.get("/")  # type: ignore
+async def root() -> dict:
     """Health check endpoint"""
     return {
         "status": "running",
@@ -100,8 +115,8 @@ async def root():
     }
 
 
-@app.get("/health")
-async def health():
+@app.get("/health")  # type: ignore
+async def health() -> dict:
     """Detailed health check endpoint"""
     health_status = {
         "status": "healthy",
@@ -111,16 +126,17 @@ async def health():
         },
         "bot_name": settings.bot_name,
     }
-    
+
     # Check if all components are initialized
-    if not all(health_status["components"].values()):
+    components = dict(health_status["components"])  # type: ignore
+    if not all(components.values()):
         health_status["status"] = "unhealthy"
-    
+
     return health_status
 
 
-@app.get("/health")
-async def health_check():
+@app.get("/health")  # type: ignore
+async def health_check() -> dict:
     """Detailed health check"""
     health = {
         "status": "healthy",
@@ -133,7 +149,9 @@ async def health_check():
     return health
 
 
-async def process_and_respond(token: str, query: str, thinking_message_id: int):
+async def process_and_respond(
+    token: str, query: str, thinking_message_id: int | None
+) -> None:
     """
     Process the query and send response, then delete thinking message
 
@@ -144,13 +162,22 @@ async def process_and_respond(token: str, query: str, thinking_message_id: int):
     """
     try:
         # Generate response
-        response = rag_pipeline.answer_question(query)["answer"]
+        if rag_pipeline is None:
+            response = "Bot is not initialized yet."
+        else:
+            result = rag_pipeline.answer_question(query)
+            response = (
+                str(result["answer"])
+                if result and "answer" in result
+                else "I couldn't generate a response."
+            )
 
         # Send the answer as a new message
         await send_to_nextcloud_fallback(token, response)
 
         # Delete the thinking message
-        await delete_message(token, thinking_message_id)
+        if thinking_message_id is not None:
+            await delete_message(token, thinking_message_id)
 
     except Exception as e:
         logger.error(f"Error in process_and_respond: {e}")
@@ -160,8 +187,8 @@ async def process_and_respond(token: str, query: str, thinking_message_id: int):
         )
 
 
-@app.post("/webhook")
-async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
+@app.post("/webhook")  # type: ignore
+async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -> dict:
     """
     Handle incoming webhooks from Nextcloud Talk
     """
@@ -173,7 +200,7 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
         # Verify webhook signature
         signature_header = request.headers.get("X-Nextcloud-Talk-Signature")
         random_header = request.headers.get("X-Nextcloud-Talk-Random", "")
-        if not verify_signature(raw_body, signature_header, random_header):
+        if not verify_signature(raw_body, signature_header or "", random_header):
             logger.warning("Invalid webhook signature - rejecting request")
             raise HTTPException(status_code=401, detail="Invalid signature")
 
@@ -225,22 +252,29 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks):
 
     except Exception as e:
         logger.error(f"Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/test-query")
-async def test_query(query: str):
+@app.post("/test-query")  # type: ignore
+async def test_query(query: str) -> dict:
     """Test endpoint for debugging (no Nextcloud required)"""
     logger.info(f"Test query: {query}")
 
     # Query RAG
-    result = rag_pipeline.answer_question(query)
+    if rag_pipeline is None:
+        result = {"answer": "Bot is not initialized yet."}
+    else:
+        result = rag_pipeline.answer_question(query)
+        if result and "answer" in result:
+            result = result
+        else:
+            result = {"answer": "No result"}
 
     return {"result": result, "source": "rag"}
 
 
-@app.get("/stats")
-async def get_stats():
+@app.get("/stats")  # type: ignore
+async def get_stats() -> dict:
     """Get bot statistics"""
     stats = {}
 
@@ -248,6 +282,26 @@ async def get_stats():
         stats["vector_db_stats"] = vector_db.get_collection_stats()
 
     return stats
+
+
+@app.post("/reload-prompt")  # type: ignore
+async def reload_prompt() -> dict:
+    """Manually reload the prompt template
+
+    Forces reload of prompt_template.txt without file watcher.
+    Useful if file watching fails or for immediate reload.
+    Dependencies: RAG pipeline must be initialized.
+    """
+    if not rag_pipeline:
+        raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
+
+    try:
+        rag_pipeline.reload_prompt_template()
+        return {"status": "success", "message": "Prompt template reloaded"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to reload prompt: {str(e)}"
+        ) from e
 
 
 if __name__ == "__main__":

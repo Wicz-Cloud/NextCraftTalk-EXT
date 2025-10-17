@@ -236,7 +236,7 @@ How to make a beacon?
 
 # The bot responds to:
 - craft/crafting questions
-- recipe queries  
+- recipe queries
 - "how do I" questions
 - "how to make" questions
 - Minecraft-related keywords
@@ -325,7 +325,7 @@ http://localhost:11434/api/tags    # List models
 
 2. **Update wiki data regularly**
    - Update wiki data monthly
-   
+
 3. **Watch memory usage**
    - Restart bot daily if memory grows
    - Use smaller model if swapping

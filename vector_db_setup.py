@@ -5,6 +5,7 @@ Handles embedding generation and similarity search
 
 import concurrent.futures
 import json
+import os
 
 import chromadb
 from chromadb.config import Settings
@@ -38,7 +39,7 @@ class MinecraftVectorDB:
         try:
             self.collection = self.client.get_collection(name=collection_name)
             print(f"Loaded existing collection: {collection_name}")
-        except:
+        except Exception:
             self.collection = self.client.create_collection(
                 name=collection_name,
                 metadata={"description": "Minecraft Wiki Knowledge Base"},
@@ -48,14 +49,14 @@ class MinecraftVectorDB:
     def embed_text(self, text: str) -> list[float]:
         """Generate embedding for a single text"""
         embedding = self.embedding_model.encode(text, convert_to_numpy=True)
-        return embedding.tolist()
+        return embedding.tolist()  # type: ignore
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for multiple texts"""
         embeddings = self.embedding_model.encode(texts, convert_to_numpy=True)
-        return embeddings.tolist()
+        return embeddings.tolist()  # type: ignore
 
-    def add_documents(self, documents: list[dict], batch_size: int = 100):
+    def add_documents(self, documents: list[dict], batch_size: int = 100) -> None:
         """
         Add documents to the vector database
         documents: List of dicts with 'title', 'content', 'url'
@@ -66,7 +67,7 @@ class MinecraftVectorDB:
         batches = []
         for i in range(0, len(documents), batch_size):
             batch = documents[i : i + batch_size]
-            ids = [f"doc_{i+j}" for j in range(len(batch))]
+            ids = [f"doc_{i + j}" for j in range(len(batch))]
             texts = [doc["content"] for doc in batch]
             metadatas = [
                 {"title": doc["title"], "url": doc.get("url", ""), "chunk_id": i + j}
@@ -75,7 +76,7 @@ class MinecraftVectorDB:
             batches.append((ids, texts, metadatas))
 
         # Multi-threaded encoding
-        def encode_batch(batch_data):
+        def encode_batch(batch_data: tuple) -> tuple:
             ids, texts, metadatas = batch_data
             embeddings = self.embed_batch(texts)
             return ids, embeddings, texts, metadatas
@@ -90,7 +91,8 @@ class MinecraftVectorDB:
             )
 
             print(
-                f"Added batch {i//batch_size + 1}/{(len(documents)-1)//batch_size + 1}"
+                f"Added batch {i // batch_size + 1}/"
+                f"{(len(documents) - 1) // batch_size + 1}"
             )
 
         print("✓ All documents indexed!")
@@ -105,20 +107,21 @@ class MinecraftVectorDB:
 
         # Search in ChromaDB
         results = self.collection.query(
-            query_embeddings=[query_embedding], n_results=n_results
+            query_embeddings=[query_embedding],
+            n_results=n_results,  # type: ignore
         )
 
         # Format results
         formatted_results = []
-        if results["documents"] and len(results["documents"]) > 0:
-            for i in range(len(results["documents"][0])):
+        if results["documents"] and len(results["documents"]) > 0:  # type: ignore
+            for i in range(len(results["documents"][0])):  # type: ignore
                 formatted_results.append(
                     {
-                        "content": results["documents"][0][i],
-                        "title": results["metadatas"][0][i]["title"],
-                        "url": results["metadatas"][0][i]["url"],
+                        "content": results["documents"][0][i],  # type: ignore
+                        "title": results["metadatas"][0][i]["title"],  # type: ignore
+                        "url": results["metadatas"][0][i]["url"],  # type: ignore
                         "score": (
-                            1 - results["distances"][0][i]
+                            1 - results["distances"][0][i]  # type: ignore
                             if results["distances"]
                             else 1.0
                         ),
@@ -127,7 +130,7 @@ class MinecraftVectorDB:
 
         return formatted_results
 
-    def reset_collection(self):
+    def reset_collection(self) -> None:
         """Delete and recreate the collection"""
         self.client.delete_collection(name=self.collection_name)
         self.collection = self.client.create_collection(
@@ -146,13 +149,32 @@ class MinecraftVectorDB:
         }
 
 
-def build_vector_db_from_json(json_path: str = "wiki_data/wiki_docs_chunks.json"):
-    """Helper function to build vector DB from scraped JSON"""
+def build_vector_db_from_json(
+    wiki_json_path: str = "wiki_data/wiki_docs_chunks.json",
+    external_json_path: str = "wiki_data/external_urls_scraped.json",
+) -> MinecraftVectorDB:
+    """Helper function to build vector DB from scraped JSON files"""
 
-    # Load documents
-    print(f"Loading documents from {json_path}")
-    with open(json_path, encoding="utf-8") as f:
-        documents = json.load(f)
+    # Load wiki documents
+    print(f"Loading wiki documents from {wiki_json_path}")
+    with open(wiki_json_path, encoding="utf-8") as f:
+        wiki_documents = json.load(f)
+
+    # Load external URL documents if they exist
+    external_documents = []
+    if os.path.exists(external_json_path):
+        print(f"Loading external URL documents from {external_json_path}")
+        with open(external_json_path, encoding="utf-8") as f:
+            external_documents = json.load(f)
+    else:
+        print(f"External URLs file not found: {external_json_path}")
+
+    # Combine all documents
+    all_documents = wiki_documents + external_documents
+    print(
+        f"Total documents to process: {len(all_documents)} "
+        f"({len(wiki_documents)} wiki + {len(external_documents)} external)"
+    )
 
     # Initialize vector DB
     vector_db = MinecraftVectorDB()
@@ -171,7 +193,7 @@ def build_vector_db_from_json(json_path: str = "wiki_data/wiki_docs_chunks.json"
             return vector_db
 
     # Add documents
-    vector_db.add_documents(documents)
+    vector_db.add_documents(all_documents)
 
     # Print stats
     stats = vector_db.get_collection_stats()
@@ -193,7 +215,7 @@ if __name__ == "__main__":
 
     print(f"\nQuery: {test_query}\n")
     for i, result in enumerate(results):
-        print(f"Result {i+1} (score: {result['score']:.3f}):")
+        print(f"Result {i + 1} (score: {result['score']:.3f}):")
         print(f"  Title: {result['title']}")
         print(f"  Content preview: {result['content'][:200]}...")
         print()

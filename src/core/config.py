@@ -1,5 +1,8 @@
 """
 Configuration management for Minecraft Wiki Bot
+
+Settings are loaded from .env file and environment variables.
+See .env.example for all available options.
 """
 
 from pathlib import Path
@@ -11,24 +14,33 @@ class Settings(BaseSettings):
     """Application settings with validation"""
 
     # Bot configuration
-    bot_port: int = 8000
-    bot_name: str = "MinecraftBot"
-    bot_display_name: str = "Minecraft Helper"
+    bot_port: int = 8111  # Port for FastAPI server (BOT_PORT in .env)
+    bot_name: str = "MinecraftBot"  # Bot username in Nextcloud
+    bot_display_name: str = "Minecraft Helper"  # Bot display name
+
+    # Network configuration (for Docker)
+    network_name: str = "nextcloud-aio"  # Docker network name
 
     # Nextcloud configuration
-    nextcloud_url: str
-    nextcloud_bot_token: str
+    nextcloud_url: str | None = None  # Nextcloud instance URL (NEXTCLOUD_URL in .env)
+    nextcloud_bot_token: str | None = (
+        None  # Bot authentication token (NEXTCLOUD_BOT_TOKEN in .env)
+    )
 
     # Security
-    shared_secret: str | None = None
+    shared_secret: str | None = None  # Webhook signature verification
 
     # LLM configuration
-    ollama_url: str = "http://ollama:11434"
-    model_name: str = "phi3:mini"
+    ollama_url: str = "http://ollama:11434"  # Ollama service URL (OLLAMA_URL in .env)
+    model_name: str = "gemma2:2b"  # LLM model name (MODEL_NAME in .env)
 
     # RAG configuration
-    top_k_results: int = 5
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    top_k_results: int = 2  # Number of documents to retrieve
+    embedding_model: str = (
+        "sentence-transformers/all-MiniLM-L6-v2"  # Sentence transformer model
+    )
+    prompt_template_path: str = "prompt_template.txt"  # External prompt template file
+    # (PROMPT_TEMPLATE_PATH in .env)
 
     # Performance settings
     max_workers: int = 2
@@ -42,16 +54,18 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/nextcloud_bot.log"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": False,
+        "protected_namespaces": ("settings_",),
+    }
 
     @property
     def log_path(self) -> Path:
         """Get the log file path"""
         return Path(self.log_file)
 
-    def ensure_log_directory(self):
+    def ensure_log_directory(self) -> None:
         """Ensure log directory exists"""
         self.log_path.parent.mkdir(exist_ok=True)
 
