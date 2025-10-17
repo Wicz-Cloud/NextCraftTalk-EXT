@@ -174,10 +174,10 @@ The enhanced deployment script combines setup and deployment into a single seaml
 
 ```bash
 # Make script executable
-chmod +x scripts/deploy-enhanced.sh
+chmod +x scripts/deployment.sh
 
 # Run enhanced setup and deployment
-./scripts/deploy-enhanced.sh docker production
+./scripts/deployment.sh docker production
 
 # This will automatically:
 # - Check for port/container/network conflicts
@@ -201,13 +201,13 @@ chmod +x scripts/deploy-enhanced.sh
 **Examples:**
 ```bash
 # Docker deployment (production)
-./scripts/deploy-enhanced.sh docker production
+./scripts/deployment.sh docker production
 
 # Local deployment (development)
-./scripts/deploy-enhanced.sh local development
+./scripts/deployment.sh local development
 
 # Raspberry Pi deployment
-./scripts/deploy-enhanced.sh pi production
+./scripts/deployment.sh pi production
 ```
 
 **Safety Features:**

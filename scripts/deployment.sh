@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Enhanced Minecraft Bot Deployment Script with Conflict Checks
+# Minecraft Bot Deployment Script with Conflict Checks
 # This script provides comprehensive deployment with safety checks
 
 set -e  # Exit on any error
@@ -404,7 +404,7 @@ run_health_checks() {
 # ============================================================
 
 main() {
-    log "Starting enhanced deployment script"
+    log "Starting deployment script"
     log "Deployment type: $DEPLOY_TYPE"
     log "Environment: $ENVIRONMENT"
     log "Project directory: $PROJECT_DIR"
@@ -505,7 +505,7 @@ main() {
 
 # Show usage if requested
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo "Enhanced Minecraft Bot Deployment Script"
+    echo "Minecraft Bot Deployment Script"
     echo
     echo "Usage: $0 [deployment-type] [environment]"
     echo

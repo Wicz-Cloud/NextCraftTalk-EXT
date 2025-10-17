@@ -4,7 +4,7 @@
 
 ```bash
 # Complete setup and deployment with conflict checks
-git clone <repo> && cd minecraft-wiki-bot && chmod +x scripts/deploy-enhanced.sh && ./scripts/deploy-enhanced.sh docker production
+git clone <repo> && cd minecraft-wiki-bot && chmod +x scripts/deployment.sh && ./scripts/deployment.sh docker production
 ```
 
 ## 🔧 Common Commands

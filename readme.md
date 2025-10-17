@@ -18,8 +18,8 @@ A self-hosted chatbot that answers Minecraft questions using RAG (Retrieval-Augm
 ```bash
 # Clone and deploy in one command
 git clone <your-repo> && cd mc_ai
-chmod +x scripts/deploy-enhanced.sh
-./scripts/deploy-enhanced.sh docker production
+chmod +x scripts/deployment.sh
+./scripts/deployment.sh docker production
 ```
 
 This automatically:
