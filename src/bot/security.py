@@ -47,9 +47,11 @@ def verify_signature(
 
         provided_signature = signature_header.lower().strip()
 
-        logger.info(f"DEBUG: Random header: {random_header}")
-        logger.info(f"DEBUG: Expected signature: {expected_signature[:16]}...")
-        logger.info(f"DEBUG: Received signature: {provided_signature[:16]}...")
+        # Only log detailed security debug info when in DEBUG mode
+        if settings.log_level.upper() == "DEBUG":
+            logger.info(f"DEBUG: Random header: {random_header}")
+            logger.info(f"DEBUG: Expected signature: {expected_signature[:16]}...")
+            logger.info(f"DEBUG: Received signature: {provided_signature[:16]}...")
 
         if hmac.compare_digest(provided_signature, expected_signature.lower()):
             logger.info("✓ Webhook signature verified")
