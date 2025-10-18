@@ -17,6 +17,7 @@ os.environ["CHROMA_TELEMETRY_ENABLED"] = "false"
 
 # Suppress ChromaDB telemetry logging
 logging.getLogger("chromadb.telemetry").setLevel(logging.ERROR)
+logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.ERROR)
 
 
 class MinecraftVectorDB:
