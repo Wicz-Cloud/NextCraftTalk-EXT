@@ -189,6 +189,9 @@ curl http://localhost:8111/health
 # Get statistics
 curl http://localhost:8111/stats
 
+# Clear response cache (force fresh LLM generations)
+curl -X POST http://localhost:8111/clear-cache
+
 # Manual prompt reload (if file watching fails)
 curl -X POST http://localhost:8111/reload-prompt
 
