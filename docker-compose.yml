@@ -35,6 +35,7 @@ services:
       - ./chroma_db:/app/chroma_db  # Mounts vector database
       - ./.env:/app/.env            # Mounts environment config
       - ./prompt_template.txt:/app/prompt_template.txt  # Mounts prompt template for editing without restart
+      - ./logs:/app/logs            # Mounts application logs for rotation
     environment:
       - NEXTCLOUD_URL=${NEXTCLOUD_URL}      # Nextcloud instance URL
       - NEXTCLOUD_BOT_TOKEN=${NEXTCLOUD_BOT_TOKEN}  # Bot authentication token
@@ -47,6 +48,11 @@ services:
       - minecraft_bot_network
       - nextcloud-aio  # Connects to Nextcloud network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${BOT_PORT}/health"]  # Health check endpoint
       interval: 30s
