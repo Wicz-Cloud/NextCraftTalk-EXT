@@ -45,6 +45,9 @@ dependencies = [
     "python-multipart==0.0.9",
     "aiofiles==24.1.0",
     "tqdm==4.66.5",
+    "streamlit==1.39.0",
+    "plotly==5.24.1",
+    "scikit-learn==1.7.2",
 ]
 
 [project.optional-dependencies]

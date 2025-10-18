@@ -199,6 +199,23 @@ curl -X POST http://localhost:8111/reload-prompt
 curl -X POST http://localhost:8111/test-query -H "Content-Type: application/json" -d '{"query": "How to craft a sword?"}'
 ```
 
+### Database Explorer
+```bash
+# Launch visual database explorer (requires virtual environment)
+./explore_db.sh
+
+# Or run directly
+source venv/bin/activate && streamlit run db_explorer.py
+
+# Access at: http://localhost:8501
+```
+
+**Features:**
+- 📊 **Vector Visualization**: 2D/3D scatter plots of document embeddings
+- 🔍 **Semantic Search**: Test queries against your vector database
+- 📄 **Document Browser**: View stored documents and metadata
+- 📈 **Collection Stats**: Overview of your knowledge base
+
 ### Prompt Management
 ```bash
 # Edit prompt template (changes auto-detected)
