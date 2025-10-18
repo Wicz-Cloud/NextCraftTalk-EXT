@@ -133,6 +133,9 @@ module = [
     "sentence_transformers.*",
     "torch.*",
     "transformers.*",
+    "nextcloud_api.*",
+    "pipline.*",
+    "nextcloud_bot.*"
 ]
 ignore_missing_imports = true
 
