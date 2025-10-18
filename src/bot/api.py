@@ -80,7 +80,8 @@ async def startup_event() -> None:
         logger.info("Initializing RAG pipeline...")
         rag_pipeline = MinecraftRAGPipeline(
             vector_db=vector_db,
-            ollama_url=settings.ollama_url,  # From OLLAMA_URL in .env
+            xai_api_key=settings.xai_api_key,  # From XAI_API_KEY in .env
+            xai_url=settings.xai_url,  # x.ai API URL
             model_name=settings.model_name,  # From MODEL_NAME in .env
             prompt_template_path=settings.prompt_template_path,
             # From PROMPT_TEMPLATE_PATH

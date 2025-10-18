@@ -1,26 +1,6 @@
 version: '3.8'
 
 services:
-  # Ollama - Local LLM Server
-  ollama:
-    image: ollama/ollama:latest
-    container_name: minecraft_ollama
-    ports:
-      - "${OLLAMA_PORT:-11434}:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - nextcloud-aio
-    restart: unless-stopped
-#    deploy:
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: all
-#              capabilities: [gpu]
-    # For CPU-only, remove the deploy section above
-
   # Minecraft Bot Service
   minecraft_bot:
     build:
@@ -39,11 +19,9 @@ services:
     environment:
       - NEXTCLOUD_URL=${NEXTCLOUD_URL}      # Nextcloud instance URL
       - NEXTCLOUD_BOT_TOKEN=${NEXTCLOUD_BOT_TOKEN}  # Bot authentication token
-      - OLLAMA_URL=http://ollama:11434     # Ollama service URL (internal network)
-      - MODEL_NAME=${MODEL_NAME:-phi3:mini} # LLM model name from .env
+      - XAI_API_KEY=${XAI_API_KEY}          # x.ai API key
+      - MODEL_NAME=${MODEL_NAME:-grok-4-fast-non-reasoning} # x.ai model name
       - BOT_NAME=${BOT_NAME:-MinecraftBot}  # Bot display name
-    depends_on:
-      - ollama  # Wait for Ollama service to start
     networks:
       - minecraft_bot_network
       - nextcloud-aio  # Connects to Nextcloud network
@@ -75,8 +53,6 @@ services:
   #   # Comment out if not using reverse proxy
 
 volumes:
-  ollama_data:
-    driver: local
 
 networks:
   minecraft_bot_network:

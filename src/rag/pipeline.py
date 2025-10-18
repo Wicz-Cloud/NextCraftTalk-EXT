@@ -1,6 +1,6 @@
 """
 RAG Pipeline - Retrieval-Augmented Generation
-Combines vector search with LLM generation via Ollama
+Combines vector search with LLM generation via x.ai
 
 Features:
 - Dynamic prompt template loading from external file
@@ -52,8 +52,9 @@ class MinecraftRAGPipeline:
     def __init__(
         self,
         vector_db: MinecraftVectorDB,
-        ollama_url: str = "http://localhost:11434",
-        model_name: str = "phi3:mini",
+        xai_api_key: str,
+        xai_url: str = "https://api.x.ai/v1",
+        model_name: str = "grok-4-fast-non-reasoning",
         top_k: int = 2,
         prompt_template_path: str = "prompt_template.txt",
     ):  # Reduced from 5 to 2
@@ -62,14 +63,16 @@ class MinecraftRAGPipeline:
 
         Args:
             vector_db: Initialized MinecraftVectorDB instance
-            ollama_url: Ollama API endpoint (configured via OLLAMA_URL in .env)
-            model_name: Model to use (configured via MODEL_NAME in .env)
+            xai_api_key: x.ai API key for authentication
+            xai_url: x.ai API endpoint
+            model_name: Model to use (grok-4-fast-non-reasoning)
             top_k: Number of documents to retrieve
             prompt_template_path: Path to prompt template file
             (configured via PROMPT_TEMPLATE_PATH in .env)
         """
         self.vector_db = vector_db
-        self.ollama_url = ollama_url
+        self.xai_api_key = xai_api_key
+        self.xai_url = xai_url
         self.model_name = model_name
         self.top_k = top_k
         self.prompt_template_path = prompt_template_path
@@ -86,8 +89,8 @@ class MinecraftRAGPipeline:
         # (requires watchdog dependency)
         self._start_file_watcher()
 
-        # Test Ollama connection (depends on ollama service in docker-compose.yml)
-        self._test_ollama_connection()
+        # Test x.ai connection (depends on x.ai API key)
+        self._test_xai_connection()
 
     def _get_cache_key(self, query: str) -> str:
         """Generate a cache key for the query"""
@@ -192,23 +195,23 @@ YOUR JOB:
 ANSWER:
 """
 
-    def _test_ollama_connection(self) -> None:
-        """Test if Ollama is accessible"""
+    def _test_xai_connection(self) -> None:
+        """Test if x.ai API is accessible"""
         try:
-            response = requests.get(f"{self.ollama_url}/api/tags", timeout=5)
+            # Test with a simple request to check API key
+            headers = {
+                "Authorization": f"Bearer {self.xai_api_key}",
+                "Content-Type": "application/json",
+            }
+            response = requests.get(
+                f"{self.xai_url}/models", headers=headers, timeout=10
+            )
             if response.status_code == 200:
-                models = response.json().get("models", [])
-                model_names = [m["name"] for m in models]
-                print(f"✓ Connected to Ollama. Available models: {model_names}")
-                if self.model_name not in model_names:
-                    print(
-                        f"⚠ Warning: Model {self.model_name} not found. Pull it with: "
-                        f"ollama pull {self.model_name}"
-                    )
+                print(f"✓ Connected to x.ai API. Using model: {self.model_name}")
             else:
-                print("⚠ Ollama connection failed")
+                print(f"⚠ x.ai API connection failed: {response.status_code}")
         except Exception as e:
-            print(f"⚠ Could not connect to Ollama: {e}")
+            print(f"⚠ Could not connect to x.ai API: {e}")
 
     def _start_file_watcher(self) -> None:
         """Start file watcher for prompt template changes
@@ -315,48 +318,53 @@ ANSWER:
         return prompt
 
     def generate_response(self, prompt: str, temperature: float = 0.3) -> str:
-        """Generate response using Ollama"""
+        """Generate response using x.ai API"""
 
-        url = f"{self.ollama_url}/api/generate"
+        url = f"{self.xai_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.xai_api_key}",
+            "Content-Type": "application/json",
+        }
         payload = {
             "model": self.model_name,
-            "prompt": prompt,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": 300,  # Reduced for faster responses
             "stream": False,
-            "options": {
-                "temperature": temperature,
-                "top_p": 0.9,
-                "top_k": 40,
-                "num_predict": 300,  # Reduced for faster responses
-                "num_ctx": 2048,  # Keep context window for responses
-                "repeat_penalty": 1.1,
-            },
         }
 
         try:
             response = requests.post(
                 url,
+                headers=headers,
                 json=payload,
                 timeout=60,
             )
             if response.status_code == 200:
                 data = response.json()
-                answer = str(data.get("response", "")).strip()
-                if answer:
-                    return answer
+                if "choices" in data and len(data["choices"]) > 0:
+                    answer = str(data["choices"][0]["message"]["content"]).strip()
+                    if answer:
+                        return answer
+                    else:
+                        return (
+                            "I found some information but couldn't generate a "
+                            "complete answer. Please try rephrasing your question."
+                        )
                 else:
-                    return (
-                        "I found some information but couldn't generate a "
-                        "complete answer. Please try rephrasing your question."
-                    )
+                    return "Error: No response generated by x.ai"
             else:
-                return f"Error generating response: {response.status_code}"
+                return (
+                    f"Error generating response: {response.status_code} - "
+                    f"{response.text}"
+                )
         except requests.exceptions.Timeout:
             return (
                 "The AI is taking too long to respond. Please try a simpler "
                 "question or try again later."
             )
         except Exception as e:
-            return f"Error connecting to LLM: {str(e)}"
+            return f"Error connecting to x.ai API: {str(e)}"
 
     def answer_question(self, query: str, include_sources: bool = True) -> dict:
         """

@@ -31,8 +31,9 @@ class Settings(BaseSettings):
     shared_secret: str | None = None  # Webhook signature verification
 
     # LLM configuration
-    ollama_url: str = "http://ollama:11434"  # Ollama service URL (OLLAMA_URL in .env)
-    model_name: str = "gemma2:2b"  # LLM model name (MODEL_NAME in .env)
+    xai_api_key: str | None = None  # x.ai API key (XAI_API_KEY in .env)
+    xai_url: str = "https://api.x.ai/v1"  # x.ai API URL
+    model_name: str = "grok-4-fast-non-reasoning"  # x.ai model name
 
     # RAG configuration
     top_k_results: int = 2  # Number of documents to retrieve

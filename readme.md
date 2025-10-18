@@ -31,11 +31,14 @@ The deployment script automatically:
 - Builds knowledge base
 - Configures the bot
 
-### 2. Configure Nextcloud
+### 2. Configure x.ai API
 
-1. Go to **Settings → Administration → Talk → Bots**
-2. Add webhook: `http://your-server:8000/webhook`
-3. Set bot name: `MinecraftBot`
+Get your API key from [x.ai](https://x.ai) and add it to your `.env` file:
+
+```env
+XAI_API_KEY=your-xai-api-key-here
+MODEL_NAME=grok-4-fast-non-reasoning
+```
 
 ### 3. Test the Bot
 
@@ -117,8 +120,8 @@ NETWORK_NAME=nextcloud-aio  # For Nextcloud AIO
 
 # Bot Settings
 BOT_NAME=MinecraftBot
-MODEL_NAME=gemma2:2b       # Current model (phi3:mini, gemma2:2b, mistral:7b-instruct)
-OLLAMA_PORT=11434          # Ollama API port
+XAI_API_KEY=your-xai-api-key-here  # Get from https://x.ai
+MODEL_NAME=grok-4-fast-non-reasoning  # x.ai model
 BOT_PORT=8111              # Bot API port
 
 # Prompt Template (external file for easy editing)
@@ -234,7 +237,7 @@ cp prompt_template.txt prompt_template.txt.backup
 - **FastAPI Bot**: Handles Nextcloud webhooks and API requests
 - **RAG Pipeline**: Combines vector search with LLM generation
 - **Vector Database**: ChromaDB stores Minecraft knowledge embeddings
-- **Ollama**: Local LLM server for text generation
+- **x.ai API**: Cloud LLM service for text generation (grok-4-fast-non-reasoning)
 - **File Watcher**: Automatically detects prompt template changes
 
 ### Data Flow
@@ -280,14 +283,17 @@ docker-compose exec minecraft_bot ls -la /app/prompt_template.txt
 
 **Model not working?**
 ```bash
-# Check available models
-curl http://localhost:11434/api/tags
+# Check x.ai API key is set
+grep XAI_API_KEY .env
 
-# Pull a model
-docker-compose exec ollama ollama pull gemma2:2b
+# Test x.ai API connection
+curl -H "Authorization: Bearer YOUR_API_KEY" https://api.x.ai/v1/models
+
+# Check bot logs for API errors
+docker-compose logs minecraft_bot | tail -20
 
 # Change model in .env and restart
-echo "MODEL_NAME=gemma2:2b" >> .env
+echo "MODEL_NAME=grok-4-fast-non-reasoning" >> .env
 docker-compose restart minecraft_bot
 ```
 

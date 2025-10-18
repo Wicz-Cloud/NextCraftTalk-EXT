@@ -27,27 +27,34 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: minecraft_bot
-    env_file: .env
+    env_file: .env  # Loads environment variables from .env file
     ports:
-      - "${BOT_PORT}:${BOT_PORT}"
+      - "${BOT_PORT}:${BOT_PORT}"  # Exposes bot API port (default 8111)
     volumes:
-      - ./wiki_data:/app/wiki_data
-      - ./chroma_db:/app/chroma_db
-      - ./.env:/app/.env
+      - ./wiki_data:/app/wiki_data  # Mounts scraped wiki data
+      - ./chroma_db:/app/chroma_db  # Mounts vector database
+      - ./.env:/app/.env            # Mounts environment config
+      - ./prompt_template.txt:/app/prompt_template.txt  # Mounts prompt template for editing without restart
+      - ./logs:/app/logs            # Mounts application logs for rotation
     environment:
-      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
-      - NEXTCLOUD_BOT_TOKEN=${NEXTCLOUD_BOT_TOKEN}
-      - OLLAMA_URL=http://ollama:11434
-      - MODEL_NAME=${MODEL_NAME:-phi3:mini}
-      - BOT_NAME=${BOT_NAME:-MinecraftBot}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL}      # Nextcloud instance URL
+      - NEXTCLOUD_BOT_TOKEN=${NEXTCLOUD_BOT_TOKEN}  # Bot authentication token
+      - OLLAMA_URL=http://ollama:11434     # Ollama service URL (internal network)
+      - MODEL_NAME=${MODEL_NAME:-phi3:mini} # LLM model name from .env
+      - BOT_NAME=${BOT_NAME:-MinecraftBot}  # Bot display name
     depends_on:
-      - ollama
+      - ollama  # Wait for Ollama service to start
     networks:
       - minecraft_bot_network
-      - nextcloud-aio
+      - nextcloud-aio  # Connects to Nextcloud network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${BOT_PORT}/health"]  # Health check endpoint
       interval: 30s
 
   # Nginx Reverse Proxy (optional, for HTTPS)
