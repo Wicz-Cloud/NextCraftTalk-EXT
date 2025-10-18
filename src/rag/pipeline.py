@@ -9,6 +9,10 @@ Features:
 - Integration with ChromaDB vector database
 """
 
+import difflib
+import hashlib
+import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +74,11 @@ class MinecraftRAGPipeline:
         self.top_k = top_k
         self.prompt_template_path = prompt_template_path
 
+        # Initialize response cache (LRU cache with max 50 entries)
+        self.response_cache = OrderedDict()
+        self.cache_max_size = 50
+        self.cache_similarity_threshold = 0.85  # 85% similarity to match
+
         # Load prompt template from external file (see prompt_template.txt)
         self.prompt_template = self._load_prompt_template()
 
@@ -79,6 +88,53 @@ class MinecraftRAGPipeline:
 
         # Test Ollama connection (depends on ollama service in docker-compose.yml)
         self._test_ollama_connection()
+
+    def _get_cache_key(self, query: str) -> str:
+        """Generate a cache key for the query"""
+        return hashlib.md5(
+            query.lower().strip().encode(), usedforsecurity=False
+        ).hexdigest()
+
+    def _find_similar_cached_query(self, query: str) -> str | None:
+        """Find a similar cached query using fuzzy matching"""
+        query_lower = query.lower().strip()
+
+        for cached_query in self.response_cache.keys():
+            similarity = difflib.SequenceMatcher(
+                None, query_lower, cached_query.lower()
+            ).ratio()
+            if similarity >= self.cache_similarity_threshold:
+                return cached_query
+
+        return None
+
+    def _cache_response(self, query: str, response: dict) -> None:
+        """Cache a response, maintaining LRU order and max size"""
+        cache_key = self._get_cache_key(query)
+
+        # Remove if already exists (to update LRU order)
+        self.response_cache.pop(cache_key, None)
+
+        # Add to cache
+        self.response_cache[cache_key] = {
+            "query": query,
+            "response": response,
+            "timestamp": time.time(),
+        }
+
+        # Maintain max size (LRU eviction)
+        while len(self.response_cache) > self.cache_max_size:
+            self.response_cache.popitem(last=False)
+
+    def _get_cached_response(self, query: str) -> dict | None:
+        """Get cached response if similar query exists"""
+        similar_query = self._find_similar_cached_query(query)
+        if similar_query:
+            cache_key = self._get_cache_key(similar_query)
+            cached_item = self.response_cache[cache_key]
+            print(f"📋 Using cached response for similar query: '{similar_query}'")
+            return cached_item["response"]
+        return None
 
     def _load_prompt_template(self) -> str:
         """Load prompt template from file"""
@@ -265,16 +321,18 @@ ANSWER:
                 "temperature": temperature,
                 "top_p": 0.9,
                 "top_k": 40,
-                "num_predict": 1000,  # Increased to 1000 tokens for longer responses
-                "num_ctx": 2048,  # Increased back to 2048 for better context
+                "num_predict": 300,  # Reduced for faster responses
+                "num_ctx": 2048,  # Keep context window for responses
                 "repeat_penalty": 1.1,
             },
         }
 
         try:
             response = requests.post(
-                url, json=payload, timeout=180
-            )  # Increased to 3 minutes
+                url,
+                json=payload,
+                timeout=60,  # Reduced from 180 to 60 seconds
+            )
             if response.status_code == 200:
                 data = response.json()
                 answer = str(data.get("response", "")).strip()
@@ -302,27 +360,57 @@ ANSWER:
         Returns:
             dict with 'answer', 'sources', 'context_used'
         """
+        import time
+
+        start_time = time.time()
+
+        # Check cache first
+        cache_start = time.time()
+        cached_response = self._get_cached_response(query)
+        cache_time = time.time() - cache_start
+
+        if cached_response:
+            print(f"⏱️ Cache lookup took {cache_time:.2f}s - CACHE HIT!")
+            total_time = time.time() - start_time
+            print(f"⏱️ Total processing took {total_time:.2f}s (cached)")
+            return cached_response
+
+        print(f"⏱️ Cache lookup took {cache_time:.2f}s - cache miss")
 
         # Step 1: Retrieve relevant context
         minecraft_query = f"Minecraft {query}"
+        retrieve_start = time.time()
         context_docs = self.retrieve_context(minecraft_query)
+        retrieve_time = time.time() - retrieve_start
+        print(f"⏱️ Context retrieval took {retrieve_time:.2f}s")
 
         if not context_docs:
-            return {
+            total_time = time.time() - start_time
+            print(f"⏱️ Total processing took {total_time:.2f}s (no context found)")
+            response = {
                 "answer": (
                     "I couldn't find any relevant information in my knowledge base."
                 ),
                 "sources": [],
                 "context_used": 0,
             }
+            self._cache_response(query, response)
+            return response
 
         # Step 2: Build prompt
+        build_start = time.time()
         prompt = self.build_prompt(query, context_docs)
+        build_time = time.time() - build_start
+        print(f"⏱️ Prompt building took {build_time:.2f}s")
 
         # Step 3: Generate response
+        generate_start = time.time()
         answer = self.generate_response(prompt)
+        generate_time = time.time() - generate_start
+        print(f"⏱️ Response generation took {generate_time:.2f}s")
 
         # Step 4: Format sources
+        format_start = time.time()
         sources = []
         if include_sources:
             for doc in context_docs[:3]:  # Top 3 sources
@@ -333,8 +421,22 @@ ANSWER:
                         "relevance": doc["score"],
                     }
                 )
+        format_time = time.time() - format_start
+        print(f"⏱️ Source formatting took {format_time:.2f}s")
 
-        return {"answer": answer, "sources": sources, "context_used": len(context_docs)}
+        response = {
+            "answer": answer,
+            "sources": sources,
+            "context_used": len(context_docs),
+        }
+
+        # Cache the response
+        self._cache_response(query, response)
+
+        total_time = time.time() - start_time
+        print(f"⏱️ Total RAG processing took {total_time:.2f}s")
+
+        return response
 
     def format_response_for_chat(self, result: dict) -> str:
         """Format the RAG result for chat display"""
