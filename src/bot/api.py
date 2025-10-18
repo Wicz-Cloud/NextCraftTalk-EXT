@@ -304,6 +304,26 @@ async def reload_prompt() -> dict:
         ) from e
 
 
+@app.post("/clear-cache")  # type: ignore
+async def clear_cache() -> dict:
+    """Clear the response cache
+
+    Clears all cached responses to force fresh LLM generations.
+    Useful for testing or when cached responses become stale.
+    Dependencies: RAG pipeline must be initialized.
+    """
+    if not rag_pipeline:
+        raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
+
+    try:
+        rag_pipeline.clear_cache()
+        return {"status": "success", "message": "Response cache cleared"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear cache: {str(e)}"
+        ) from e
+
+
 if __name__ == "__main__":
     import uvicorn
 

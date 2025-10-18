@@ -136,6 +136,11 @@ class MinecraftRAGPipeline:
             return cached_item["response"]
         return None
 
+    def clear_cache(self) -> None:
+        """Clear all cached responses"""
+        self.response_cache.clear()
+        print("🧹 Response cache cleared")
+
     def _load_prompt_template(self) -> str:
         """Load prompt template from file"""
         try:
@@ -331,7 +336,7 @@ ANSWER:
             response = requests.post(
                 url,
                 json=payload,
-                timeout=60,  # Reduced from 180 to 60 seconds
+                timeout=60,
             )
             if response.status_code == 200:
                 data = response.json()
