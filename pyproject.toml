@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "minecraft-wiki-bot"
-version = "1.0.0"
-description = "A self-hosted Minecraft knowledge chatbot using RAG and local LLMs"
+dynamic = ["version"]
+description = "A self-hosted Minecraft knowledge chatbot using x.ai API"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
@@ -81,6 +81,9 @@ zip-safe = false
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "src.__version__"}
 
 [tool.black]
 line-length = 88

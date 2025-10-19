@@ -18,7 +18,8 @@ A self-hosted Minecraft knowledge chatbot that answers questions using x.ai's Gr
   - [🔧 API Reference](#-api-reference)
   - [🐛 Troubleshooting](#-troubleshooting)
   - [🤝 Contributing](#-contributing)
-  - [� Code of Conduct](#-code-of-conduct)
+  - [📜 Code of Conduct](#-code-of-conduct)
+  - [� Security](#-security)
   - [�📄 License](#-license)
   - [🙏 Acknowledgments](#-acknowledgments)
 
@@ -373,9 +374,13 @@ python -m src.bot --verbose --debug
 - Update documentation
 - Ensure all tests pass
 
-## � Code of Conduct
+## 📜 Code of Conduct
 
 This project is governed by a [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a welcoming environment for all contributors and users. By participating, you agree to uphold this code.
+
+## � Security
+
+For information about reporting security vulnerabilities, please see our [Security Policy](SECURITY.md).
 
 ## �📄 License
 
