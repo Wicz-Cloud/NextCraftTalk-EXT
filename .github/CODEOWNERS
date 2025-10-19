@@ -1,0 +1,20 @@
+# Code Owners
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners
+* @webwicz
+
+# Core application code
+/src/ @webwicz
+
+# Configuration and deployment
+/docker-compose.yml @webwicz
+/Dockerfile @webwicz
+/pyproject.toml @webwicz
+
+# Documentation
+/docs/ @webwicz
+*.md @webwicz
+
+# CI/CD and automation
+/.github/ @webwicz

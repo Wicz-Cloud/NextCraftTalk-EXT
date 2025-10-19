@@ -49,7 +49,7 @@ Get the Minecraft AI Chatbot running in under 5 minutes!
 
 ```bash
 # Clone the repository
-git clone <your-repo-url> && cd mc_ai
+git clone https://github.com/Wicz-Cloud/NextCraftTalk-EXT.git && cd NextCraftTalk-EXT
 
 # Start the bot
 docker-compose up -d
@@ -74,8 +74,8 @@ docker-compose logs -f minecraft_bot
 
 ```bash
 # Clone repository
-git clone <your-repo-url>
-cd mc_ai
+git clone https://github.com/Wicz-Cloud/NextCraftTalk-EXT.git
+cd NextCraftTalk-EXT
 
 # Start services
 docker-compose up -d
@@ -88,8 +88,8 @@ docker-compose logs -f minecraft_bot
 
 ```bash
 # Clone repository
-git clone <your-repo-url>
-cd mc_ai
+git clone https://github.com/Wicz-Cloud/NextCraftTalk-EXT.git
+cd NextCraftTalk-EXT
 
 # Install dependencies
 pip install -r requirements.txt
@@ -342,8 +342,8 @@ We welcome contributions! Please follow these steps:
 
 ```bash
 # Fork and clone
-git clone https://github.com/your-username/mc_ai.git
-cd mc_ai
+git clone https://github.com/Wicz-Cloud/NextCraftTalk-EXT.git
+cd NextCraftTalk-EXT
 
 # Create virtual environment
 python -m venv venv
@@ -424,6 +424,6 @@ SOFTWARE.
 
 **Made with ❤️ for the (parents of) Minecraft community**
 
-[⭐ Star us on GitHub](https://github.com/your-username/mc_ai) • [🐛 Report Issues](https://github.com/your-username/mc_ai/issues) • [💬 Join Discussions](https://github.com/your-username/mc_ai/discussions)
+[⭐ Star us on GitHub](https://github.com/Wicz-Cloud/NextCraftTalk-EXT) • [🐛 Report Issues](https://github.com/Wicz-Cloud/NextCraftTalk-EXT/issues) • [💬 Join Discussions](https://github.com/Wicz-Cloud/NextCraftTalk-EXT/discussions)
 
 </div>
