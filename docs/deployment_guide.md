@@ -493,7 +493,7 @@ htop
 # Select option 7 (Rebuild Vector DB)
 
 # Or manually:
-rm -rf logs
+
 python -m src.data.vector_db
 ```
 
