@@ -113,7 +113,7 @@ cd ~/minecraft-bot
 # Clone (or download) the project files
 # Assuming files are in current directory
 # Create necessary directories
-mkdir -p wiki_data chroma_db backups logs
+mkdir -p logs
 ```
 
 ### Step 4: Configure Environment
@@ -498,7 +498,7 @@ htop
 # Select option 7 (Rebuild Vector DB)
 
 # Or manually:
-rm -rf chroma_db
+rm -rf logs
 python -m src.data.vector_db
 ```
 

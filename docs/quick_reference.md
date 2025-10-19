@@ -102,7 +102,7 @@ curl -X POST http://localhost:8000/webhook \
 docker stats minecraft_bot
 
 # Disk usage
-du -sh wiki_data/ chroma_db/
+du -sh logs/
 
 # Log monitoring
 journalctl -u minecraft-bot -f  # systemd
@@ -126,7 +126,7 @@ pip install --upgrade -e .
 git pull && pip install -e .
 
 # Backup everything
-tar -czf backup_$(date +%Y%m%d).tar.gz wiki_data chroma_db .env
+tar -czf backup_$(date +%Y%m%d).tar.gz .env logs/
 ```
 
 ## 🎯 Ollama Operations
@@ -200,8 +200,7 @@ minecraft-wiki-bot/
 ├── scripts/                  # Deployment and maintenance scripts
 ├── docs/                     # Documentation
 ├── wiki_data/                # Scraped wiki content
-├── chroma_db/                # Vector database
-├── logs/                     # Application logs
+├── logs/                   # Application logs
 └── backups/                  # Backup archives
 ```
 
@@ -283,7 +282,7 @@ docker-compose restart
 
 # Reset everything (nuclear option)
 docker-compose down
-rm -rf chroma_db
+rm -rf logs
 python -m src.data.vector_db
 docker-compose up -d
 ```

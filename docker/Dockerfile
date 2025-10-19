@@ -26,7 +26,7 @@ COPY pyproject.toml .
 COPY src/ ./src/
 
 # Create necessary directories
-RUN mkdir -p wiki_data chroma_db logs
+RUN mkdir -p logs
 
 # Expose port
 EXPOSE 8000

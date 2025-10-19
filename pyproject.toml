@@ -37,7 +37,6 @@ dependencies = [
     "requests==2.32.5",
     "beautifulsoup4==4.12.3",
     "lxml==5.3.0",
-    "chromadb==1.2.0",
     "sentence-transformers==3.3.0",
     "torch==2.5.0",
     "transformers==4.45.0",
@@ -135,7 +134,6 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-    "chromadb.*",
     "sentence_transformers.*",
     "torch.*",
     "transformers.*",
