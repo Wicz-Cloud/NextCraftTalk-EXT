@@ -3,11 +3,8 @@ Direct x.ai Query Pipeline
 Bypasses RAG and queries x.ai directly for Minecraft answers
 """
 
-import difflib
-import hashlib
 import logging
 import time
-from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -81,11 +78,6 @@ class DirectXAIPipeline:
         self.model_name = model_name
         self.prompt_template_path = prompt_template_path
 
-        # Initialize response cache (LRU cache with max 50 entries)
-        self.response_cache = OrderedDict()
-        self.cache_max_size = 50
-        self.cache_similarity_threshold = 0.85  # 85% similarity to match
-
         # Load prompt template from external file (see prompt_template.txt)
         self.prompt_template = self._load_prompt_template()
 
@@ -95,60 +87,6 @@ class DirectXAIPipeline:
 
         # Test x.ai connection (depends on x.ai API key)
         self._test_xai_connection()
-
-    def _get_cache_key(self, query: str) -> str:
-        """Generate a cache key for the query"""
-        return hashlib.md5(
-            query.lower().strip().encode(), usedforsecurity=False
-        ).hexdigest()
-
-    def _find_similar_cached_query(self, query: str) -> str | None:
-        """Find a similar cached query using fuzzy matching"""
-        query_lower = query.lower().strip()
-
-        for cached_query in self.response_cache.keys():
-            similarity = difflib.SequenceMatcher(
-                None, query_lower, cached_query.lower()
-            ).ratio()
-            if similarity >= self.cache_similarity_threshold:
-                return cached_query
-
-        return None
-
-    def _cache_response(self, query: str, response: dict) -> None:
-        """Cache a response, maintaining LRU order and max size"""
-        cache_key = self._get_cache_key(query)
-
-        # Remove if already exists (to update LRU order)
-        self.response_cache.pop(cache_key, None)
-
-        # Add to cache
-        self.response_cache[cache_key] = {
-            "query": query,
-            "response": response,
-            "timestamp": time.time(),
-        }
-
-        # Maintain max size (LRU eviction)
-        while len(self.response_cache) > self.cache_max_size:
-            self.response_cache.popitem(last=False)
-
-    def _get_cached_response(self, query: str) -> dict | None:
-        """Get cached response if similar query exists"""
-        similar_query = self._find_similar_cached_query(query)
-        if similar_query:
-            cache_key = self._get_cache_key(similar_query)
-            cached_item = self.response_cache[cache_key]
-            logger.debug(
-                f"📋 Using cached response for similar query: '{similar_query}'"
-            )
-            return cached_item["response"]
-        return None
-
-    def clear_cache(self) -> None:
-        """Clear all cached responses"""
-        self.response_cache.clear()
-        logger.info("🧹 Response cache cleared")
 
     def _load_prompt_template(self) -> str:
         """Load prompt template from file"""
@@ -350,24 +288,8 @@ ANSWER:
         Returns:
             dict with 'answer', 'sources', 'context_used'
         """
-        import time
 
         start_time = time.time()
-
-        # Check cache first
-        cache_start = time.time()
-        cached_response = self._get_cached_response(query)
-        cache_time = time.time() - cache_start
-
-        if cached_response:
-            if settings.verbose_logging:
-                print(f"⏱️ Cache lookup took {cache_time:.2f}s - CACHE HIT!")
-                total_time = time.time() - start_time
-                print(f"⏱️ Total processing took {total_time:.2f}s (cached)")
-            return cached_response
-
-        if settings.verbose_logging:
-            print(f"⏱️ Cache lookup took {cache_time:.2f}s - cache miss")
 
         # Direct x.ai query - no RAG retrieval
         if settings.verbose_logging:
@@ -397,9 +319,6 @@ Please provide a clear, kid-friendly answer about Minecraft. Keep it simple and 
             "sources": [],  # No sources since we're not using RAG
             "context_used": 0,  # No context retrieved
         }
-
-        # Cache the response
-        self._cache_response(query, response)
 
         if settings.verbose_logging:
             total_time = time.time() - start_time

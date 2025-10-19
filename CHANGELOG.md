@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-10-18
+
+### Added
+- **Simplified Architecture**: Direct x.ai integration eliminating need for local data storage
+- **Reduced Dependencies**: Removed ChromaDB, vector databases, and ML libraries
+- **Faster Deployment**: No data scraping or vector database building required
+- **Lower Resource Usage**: Eliminated memory-intensive local AI processing
+
+### Removed
+- **RAG Pipeline**: Replaced with direct x.ai queries for all responses
+- **Wiki Scraper**: No longer needed as x.ai provides comprehensive knowledge
+- **Vector Database**: ChromaDB and related vector storage components removed
+- **Response Caching**: Cache system removed in favor of x.ai's native capabilities
+- **Data Scraping**: All wiki scraping functionality and related code removed
+- **ML Dependencies**: Sentence transformers, torch, and related libraries removed
+
+### Changed
+- **API Endpoints**: Removed /clear-cache endpoint and updated health checks
+- **Configuration**: Removed RAG and cache configuration options
+- **Documentation**: Updated to reflect simplified x.ai-only architecture
+
 ## [1.0.0] - 2025-10-18
 
 ### Added

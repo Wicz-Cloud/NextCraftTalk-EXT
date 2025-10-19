@@ -35,7 +35,7 @@
                     ▲
                     │
         ┌───────────┴──────────┐
-        │  WIKI SCRAPER        │
+        │   X.AI API          │
         │  - Fetch wiki pages  │
         │  - Parse content     │
         │  - Chunk text        │

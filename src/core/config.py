@@ -52,21 +52,12 @@ class Settings(BaseSettings):
     xai_url: str = "https://api.x.ai/v1"  # x.ai API URL
     model_name: str = "grok-4-fast-non-reasoning"  # x.ai model name
 
-    # RAG configuration
-    top_k_results: int = 2  # Number of documents to retrieve
-    embedding_model: str = (
-        "sentence-transformers/all-MiniLM-L6-v2"  # Sentence transformer model
-    )
     prompt_template_path: str = "prompt_template.txt"  # External prompt
     # template file (PROMPT_TEMPLATE_PATH in .env)
 
     # Performance settings
     max_workers: int = 2
     batch_size: int = 50
-
-    # Cache configuration (legacy)
-    enable_cache: bool = True
-    cache_db_path: str = "recipe_cache.db"
 
     # Logging
     log_level: str = "INFO"
