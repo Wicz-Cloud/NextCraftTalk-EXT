@@ -59,6 +59,7 @@ class NextcloudMessage(BaseModel):
 async def startup_event() -> None:
     """Initialize x.ai pipeline on startup
 
+
     Loads x.ai pipeline with file watching and tests connection.
     Dependencies:
     - Application logs in logs/ directory
