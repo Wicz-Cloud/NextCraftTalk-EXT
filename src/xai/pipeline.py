@@ -279,7 +279,8 @@ ANSWER:
                 "question or try again later."
             )
         except Exception as e:
-            return f"Error connecting to x.ai API: {str(e)}"
+            logger.error(f"Error connecting to x.ai API: {str(e)}")
+            return "An internal error occurred while connecting to x.ai API. Please try again later."
 
     def answer_question(self, query: str, include_sources: bool = True) -> dict:
         """
