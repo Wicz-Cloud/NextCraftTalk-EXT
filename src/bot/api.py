@@ -37,8 +37,7 @@ logger.addHandler(file_handler)
 app = FastAPI(title="Minecraft Wiki Bot for Nextcloud Talk")
 
 # Initialize components
-vector_db = None
-rag_pipeline = None
+xai_pipeline = None
 
 
 class NextcloudMessage(BaseModel):
@@ -58,22 +57,21 @@ class NextcloudMessage(BaseModel):
 
 @app.on_event("startup")  # type: ignore
 async def startup_event() -> None:
-    """Initialize RAG components on startup
+    """Initialize x.ai pipeline on startup
 
-    Loads vector database, initializes RAG pipeline with file watching,
-    and tests Ollama connection. Dependencies:
+    Loads x.ai pipeline with file watching and tests connection.
+    Dependencies:
     - Application logs in logs/ directory
-    - Ollama service running (configured in docker-compose.yml)
     - prompt_template.txt file (mounted via docker volume)
     """
-    global vector_db, rag_pipeline
+    global xai_pipeline
 
     logger.info("🚀 Starting Minecraft Wiki Bot...")
 
     try:
-        # Initialize direct x.ai pipeline (no vector DB needed)
+        # Initialize direct x.ai pipeline
         logger.info("Initializing direct x.ai pipeline...")
-        rag_pipeline = DirectXAIPipeline(
+        xai_pipeline = DirectXAIPipeline(
             xai_api_key=settings.xai_api_key,  # From XAI_API_KEY in .env
             xai_url=settings.xai_url,  # x.ai API URL
             model_name=settings.model_name,  # From MODEL_NAME in .env
@@ -94,9 +92,9 @@ async def shutdown_event() -> None:
 
     Stops file watcher and cleans up resources.
     """
-    global rag_pipeline
-    if rag_pipeline:
-        rag_pipeline.stop_file_watcher()
+    global xai_pipeline
+    if xai_pipeline:
+        xai_pipeline.stop_file_watcher()
     logger.info("Bot shutdown complete")
 
 
@@ -121,8 +119,7 @@ async def health() -> dict:
     health_status = {
         "status": "healthy" if has_xai_config else "unhealthy",
         "components": {
-            "vector_db": False,  # No longer used
-            "rag_pipeline": has_xai_config,  # Check if x.ai is configured
+            "xai_pipeline": has_xai_config,  # Check if x.ai is configured
         },
         "bot_name": settings.bot_name,
     }
@@ -141,8 +138,7 @@ async def health_check() -> dict:
     health = {
         "status": "healthy" if has_xai_config else "unhealthy",
         "components": {
-            "vector_db": False,  # No longer used
-            "rag_pipeline": has_xai_config,  # Check if x.ai is configured
+            "xai_pipeline": has_xai_config,  # Check if x.ai is configured
         },
         "bot_name": settings.bot_name,
     }
@@ -163,10 +159,10 @@ async def process_and_respond(
     """
     try:
         # Generate response
-        if rag_pipeline is None:
+        if xai_pipeline is None:
             response = "Bot is not initialized yet."
         else:
-            result = rag_pipeline.answer_question(query)
+            result = xai_pipeline.answer_question(query)
             response = (
                 str(result["answer"])
                 if result and "answer" in result
@@ -272,17 +268,17 @@ async def test_query(query: str) -> dict:
     if settings.verbose_logging:
         logger.info(f"Test query: {query}")
 
-    # Query RAG
-    if rag_pipeline is None:
+    # Query x.ai pipeline
+    if xai_pipeline is None:
         result = {"answer": "Bot is not initialized yet."}
     else:
-        result = rag_pipeline.answer_question(query)
+        result = xai_pipeline.answer_question(query)
         if result and "answer" in result:
             result = result
         else:
             result = {"answer": "No result"}
 
-    return {"result": result, "source": "rag"}
+    return {"result": result, "source": "xai"}
 
 
 @app.get("/stats")  # type: ignore
@@ -290,8 +286,8 @@ async def get_stats() -> dict:
     """Get bot statistics"""
     stats = {}
 
-    if vector_db:
-        stats["vector_db_stats"] = vector_db.get_collection_stats()
+    # No vector database stats in x.ai-only architecture
+    stats["architecture"] = "x.ai direct integration"
 
     return stats
 
@@ -302,37 +298,17 @@ async def reload_prompt() -> dict:
 
     Forces reload of prompt_template.txt without file watcher.
     Useful if file watching fails or for immediate reload.
-    Dependencies: RAG pipeline must be initialized.
+    Dependencies: x.ai pipeline must be initialized.
     """
-    if not rag_pipeline:
-        raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
+    if not xai_pipeline:
+        raise HTTPException(status_code=503, detail="x.ai pipeline not initialized")
 
     try:
-        rag_pipeline.reload_prompt_template()
+        xai_pipeline.reload_prompt_template()
         return {"status": "success", "message": "Prompt template reloaded"}
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to reload prompt: {str(e)}"
-        ) from e
-
-
-@app.post("/clear-cache")  # type: ignore
-async def clear_cache() -> dict:
-    """Clear the response cache
-
-    Clears all cached responses to force fresh LLM generations.
-    Useful for testing or when cached responses become stale.
-    Dependencies: RAG pipeline must be initialized.
-    """
-    if not rag_pipeline:
-        raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
-
-    try:
-        rag_pipeline.clear_cache()
-        return {"status": "success", "message": "Response cache cleared"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to clear cache: {str(e)}"
         ) from e
 
 

@@ -114,7 +114,7 @@ tail -f logs/bot.log  # local
 
 ```bash
 # Update wiki data
-python wiki_scraper.py
+# The bot uses x.ai directly - no local data required
 
 # Rebuild vector database
 python vector_db.py
@@ -195,12 +195,11 @@ minecraft-wiki-bot/
 ├── src/                      # Source code
 │   ├── bot/                  # API and webhook handling
 │   ├── core/                 # Configuration and utilities
-│   ├── data/                 # Wiki scraping and vector database
-│   └── rag/                  # RAG pipeline
+│   ├── xai/                  # x.ai pipeline
+│   └── data/                 # Legacy data handling (deprecated)
 ├── scripts/                  # Deployment and maintenance scripts
 ├── docs/                     # Documentation
-├── wiki_data/                # Scraped wiki content
-├── logs/                   # Application logs
+├── logs/                     # Application logs
 └── backups/                  # Backup archives
 ```
 
@@ -360,15 +359,14 @@ http://localhost:11434/api/tags    # List models
 
 ```bash
 # Explore the code
-cat src/data/scraper.py      # How wiki scraping works
+# The bot uses x.ai directly for all responses
 cat src/data/vector_db.py    # How vector search works
-cat src/rag/pipeline.py      # How RAG generation works
+cat src/xai/pipeline.py      # How x.ai integration works
 cat src/bot/api.py           # How webhook handling works
 
 # Test components individually
-python -m src.data.scraper   # Scrape wiki
-python -m src.data.vector_db # Build/test vector DB
-python -m src.rag.pipeline   # Test RAG pipeline
+# Direct x.ai integration - no local data needed
+python -m src.xai.pipeline   # Test x.ai pipeline
 ```
 
 ---

@@ -263,14 +263,6 @@ POST /reload-prompt
 
 Force reload of the prompt template file.
 
-### Clear Cache
-
-```bash
-POST /clear-cache
-```
-
-Clear the response cache (forces fresh AI generations).
-
 ## 🐛 Troubleshooting
 
 ### Bot Not Responding
@@ -308,7 +300,6 @@ curl -H "Authorization: Bearer YOUR_TOKEN" https://your-nextcloud.com/ocs/v2.php
 
 **High Memory Usage:**
 - Reduce `TOP_K_RESULTS` in config
-- Clear cache periodically
 - Restart container
 
 **Slow Responses:**

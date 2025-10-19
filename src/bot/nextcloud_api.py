@@ -180,10 +180,10 @@ async def delete_message(token: str, message_id: int) -> bool:
 
 def format_answer_markdown(result: dict) -> str:
     """
-    Format RAG result as markdown for Nextcloud
+    Format x.ai result as markdown for Nextcloud
 
     Args:
-        result: RAG pipeline result dictionary
+        result: x.ai pipeline result dictionary
 
     Returns:
         str: Formatted markdown message

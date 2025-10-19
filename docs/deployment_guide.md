@@ -158,9 +158,7 @@ The enhanced deployment script automatically:
 - **Dynamically configures docker-compose.yml** with your chosen network
 - Detects if initial setup is needed
 - Creates virtual environment and installs dependencies
-- Scrapes Minecraft knowledge base from multiple sources
-- Builds vector database with multi-threaded processing
-- Pulls required Ollama model
+- Configures x.ai integration
 - Deploys based on chosen method with health checks
 ```
 
@@ -227,11 +225,8 @@ source venv/bin/activate
 # Install dependencies
 pip install -e .
 
-# Scrape wiki data
-python -m src.data.scraper
-
-# Build vector database
-python -m src.data.vector_db
+# Configure x.ai API key
+# Set XAI_API_KEY environment variable
 
 # Start bot
 python -m src.bot.api

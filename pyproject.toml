@@ -37,9 +37,6 @@ dependencies = [
     "requests==2.32.5",
     "beautifulsoup4==4.12.3",
     "lxml==5.3.0",
-    "sentence-transformers==3.3.0",
-    "torch==2.5.0",
-    "transformers==4.45.0",
     "numpy==2.0.0",
     "python-multipart==0.0.9",
     "aiofiles==24.1.0",
@@ -134,9 +131,6 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-    "sentence_transformers.*",
-    "torch.*",
-    "transformers.*",
     "nextcloud_api.*",
     "pipline.*",
     "nextcloud_bot.*"

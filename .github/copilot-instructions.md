@@ -7,7 +7,7 @@ This is a self-hosted Minecraft Wiki chatbot using Retrieval-Augmented Generatio
 - **FastAPI Service** (`nextcloud_bot.py`): Webhook handler for Nextcloud Talk integration
 - **RAG Pipeline** (`rag_pipeline.py`): Vector search + LLM generation using Ollama
 - **Vector Database** (`vector_db.py`): ChromaDB with sentence-transformers embeddings
-- **Data Pipeline** (`wiki_scraper.py`): Scrapes and chunks Minecraft Wiki content
+- **Direct x.ai Integration**: Uses x.ai's Grok model directly for all Minecraft knowledge
 
 ## Key Workflows
 
@@ -18,8 +18,8 @@ chmod +x deploy-and-setup.sh
 ./deploy-and-setup.sh docker production
 ```
 - Creates virtual environment, installs dependencies
-- Scrapes Minecraft Wiki data (10-30 minutes)
-- Builds ChromaDB vector database with embeddings
+- Configures x.ai API integration
+- Sets up Nextcloud Talk webhooks
 
 ### Development Testing
 ```bash
@@ -75,10 +75,9 @@ curl -X POST "http://localhost:8000/test-query?query=How%20to%20craft%20diamond%
 - Keyword triggers: "craft", "recipe", "how do i", "minecraft"
 
 ### External Dependencies
-- **Ollama**: Local LLM server (runs in Docker)
-- **ChromaDB**: Vector database (persistent storage)
-- **Minecraft Wiki**: Data source via API scraping
-- **Sentence Transformers**: Embedding model
+- **x.ai API**: Cloud-based LLM service
+- **Nextcloud Talk**: Chat integration platform
+- **Docker**: Containerization platform
 
 ## Development Guidelines
 
@@ -99,9 +98,8 @@ curl -X POST "http://localhost:8000/test-query?query=How%20to%20craft%20diamond%
 - Simulate webhooks with curl requests
 
 ## File Organization
-- `wiki_data/`: Scraped and processed wiki content
-- `chroma_db/`: Vector database storage
 - `logs/`: Application logs
-- `backups/`: Data backups
-- `test_chroma_db/`: Test database instances</content>
+- `backups/`: Configuration backups
+- `src/xai/`: x.ai integration pipeline
+- `src/bot/`: Nextcloud Talk webhook handling</content>
 <parameter name="filePath">/home/bill/mc_ai/.github/copilot-instructions.md
