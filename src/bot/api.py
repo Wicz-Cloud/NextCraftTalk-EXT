@@ -62,7 +62,7 @@ async def startup_event() -> None:
 
     Loads vector database, initializes RAG pipeline with file watching,
     and tests Ollama connection. Dependencies:
-    - ChromaDB data in chroma_db/ directory
+    - Application logs in logs/ directory
     - Ollama service running (configured in docker-compose.yml)
     - prompt_template.txt file (mounted via docker volume)
     """
