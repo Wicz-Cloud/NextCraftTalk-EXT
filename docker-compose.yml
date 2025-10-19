@@ -7,12 +7,10 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     container_name: minecraft_bot
-    env_file: .env  # Loads environment variables from .env file
+    command: ["python", "-m", "src.bot"]  # Allow overriding with command-line args
     ports:
       - "${BOT_PORT}:${BOT_PORT}"  # Exposes bot API port (default 8111)
     volumes:
-      - ./wiki_data:/app/wiki_data  # Mounts scraped wiki data
-      - ./chroma_db:/app/chroma_db  # Mounts vector database
       - ./.env:/app/.env            # Mounts environment config
       - ./prompt_template.txt:/app/prompt_template.txt  # Mounts prompt template for editing without restart
       - ./logs:/app/logs            # Mounts application logs for rotation
@@ -51,8 +49,6 @@ services:
   #     - nextcloud-aio
   #   restart: unless-stopped
   #   # Comment out if not using reverse proxy
-
-volumes:
 
 networks:
   minecraft_bot_network:

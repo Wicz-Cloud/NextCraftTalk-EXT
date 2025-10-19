@@ -35,14 +35,16 @@ def send_thinking_message(token: str) -> int | None:
 
     try:
         response = requests.post(base_url, headers=headers, json=data, timeout=10)
-        logger.info(
-            f"Thinking message POST status: {response.status_code}, "
-            f"text: {response.text[:200]}"
-        )
+        if settings.verbose_logging:
+            logger.info(
+                f"Thinking message POST status: {response.status_code}, "
+                f"text: {response.text[:200]}"
+            )
         if response.status_code == 201:
             response_data = response.json()
             message_id = response_data.get("ocs", {}).get("data", {}).get("id")
-            logger.info(f"✓ Thinking message sent, ID: {message_id}")
+            if settings.verbose_logging:
+                logger.info(f"✓ Thinking message sent, ID: {message_id}")
             return int(message_id) if message_id is not None else None
         else:
             logger.error(
@@ -81,7 +83,8 @@ async def send_to_nextcloud_fallback(token: str, message: str) -> bool:
         try:
             response = requests.post(base_url, headers=headers, json=data, timeout=10)
             if response.status_code == 201:
-                logger.info(f"✓ Fallback message sent to conversation {token}")
+                if settings.verbose_logging:
+                    logger.info(f"✓ Fallback message sent to conversation {token}")
                 return True
             else:
                 logger.error(f"Failed to send fallback message: {response.status_code}")
@@ -121,7 +124,8 @@ async def edit_message(token: str, message_id: int, new_message: str) -> bool:
         try:
             response = requests.put(edit_url, headers=headers, json=data, timeout=10)
             if response.status_code == 200:
-                logger.info(f"✓ Message updated in conversation {token}")
+                if settings.verbose_logging:
+                    logger.info(f"✓ Message updated in conversation {token}")
                 return True
             else:
                 logger.error(
@@ -158,7 +162,8 @@ async def delete_message(token: str, message_id: int) -> bool:
         try:
             response = requests.delete(delete_url, headers=headers, timeout=10)
             if response.status_code == 200:
-                logger.info(f"✓ Message deleted in conversation {token}")
+                if settings.verbose_logging:
+                    logger.info(f"✓ Message deleted in conversation {token}")
                 return True
             else:
                 logger.error(

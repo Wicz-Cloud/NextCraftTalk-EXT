@@ -9,6 +9,22 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    # Try to load .env file from current directory
+    env_file_path = Path(".env")
+    if env_file_path.exists():
+        load_dotenv(env_file_path)
+        print(f"✓ Loaded environment from {env_file_path.absolute()}")
+    else:
+        print("⚠ .env file not found, using environment variables only")
+except ImportError:
+    # dotenv not available, rely on environment variables
+    print("⚠ python-dotenv not available, using environment variables only")
+    pass
+
 
 class Settings(BaseSettings):
     """Application settings with validation"""
@@ -22,9 +38,10 @@ class Settings(BaseSettings):
     network_name: str = "nextcloud-aio"  # Docker network name
 
     # Nextcloud configuration
-    nextcloud_url: str | None = None  # Nextcloud instance URL (NEXTCLOUD_URL in .env)
+    nextcloud_url: str | None = None  # Nextcloud instance URL
+    # (NEXTCLOUD_URL in .env)
     nextcloud_bot_token: str | None = (
-        None  # Bot authentication token (NEXTCLOUD_BOT_TOKEN in .env)
+        None  # Bot authentication token  # (NEXTCLOUD_BOT_TOKEN in .env)
     )
 
     # Security
@@ -40,8 +57,8 @@ class Settings(BaseSettings):
     embedding_model: str = (
         "sentence-transformers/all-MiniLM-L6-v2"  # Sentence transformer model
     )
-    prompt_template_path: str = "prompt_template.txt"  # External prompt template file
-    # (PROMPT_TEMPLATE_PATH in .env)
+    prompt_template_path: str = "prompt_template.txt"  # External prompt
+    # template file (PROMPT_TEMPLATE_PATH in .env)
 
     # Performance settings
     max_workers: int = 2
@@ -54,9 +71,10 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_file: str = "logs/nextcloud_bot.log"
+    verbose_logging: bool = False  # Enable detailed logging of messages and
+    # responses
 
     model_config = {
-        "env_file": ".env",
         "case_sensitive": False,
         "protected_namespaces": ("settings_",),
     }

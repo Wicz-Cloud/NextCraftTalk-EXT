@@ -54,7 +54,8 @@ def verify_signature(
             logger.info(f"DEBUG: Received signature: {provided_signature[:16]}...")
 
         if hmac.compare_digest(provided_signature, expected_signature.lower()):
-            logger.info("✓ Webhook signature verified")
+            if settings.verbose_logging:
+                logger.info("✓ Webhook signature verified")
             return True
         else:
             logger.warning("Invalid webhook signature")

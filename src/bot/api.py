@@ -10,8 +10,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 from ..core.config import settings
-from ..data.vector_db import MinecraftVectorDB
-from ..rag.pipeline import MinecraftRAGPipeline
+from ..xai.pipeline import DirectXAIPipeline
 from .message import clean_message
 from .nextcloud_api import (
     delete_message,
@@ -72,14 +71,9 @@ async def startup_event() -> None:
     logger.info("🚀 Starting Minecraft Wiki Bot...")
 
     try:
-        # Initialize vector database (loads from chroma_db/ volume)
-        logger.info("Loading vector database...")
-        vector_db = MinecraftVectorDB()
-
-        # Initialize RAG pipeline with file watching for prompt_template.txt
-        logger.info("Initializing RAG pipeline...")
-        rag_pipeline = MinecraftRAGPipeline(
-            vector_db=vector_db,
+        # Initialize direct x.ai pipeline (no vector DB needed)
+        logger.info("Initializing direct x.ai pipeline...")
+        rag_pipeline = DirectXAIPipeline(
             xai_api_key=settings.xai_api_key,  # From XAI_API_KEY in .env
             xai_url=settings.xai_url,  # x.ai API URL
             model_name=settings.model_name,  # From MODEL_NAME in .env
@@ -119,19 +113,19 @@ async def root() -> dict:
 @app.get("/health")  # type: ignore
 async def health() -> dict:
     """Detailed health check endpoint"""
+    # Check if we have the required settings for x.ai
+    has_xai_config = bool(
+        settings.xai_api_key and settings.xai_api_key != "your-xai-api-key-here"
+    )
+
     health_status = {
-        "status": "healthy",
+        "status": "healthy" if has_xai_config else "unhealthy",
         "components": {
-            "vector_db": vector_db is not None,
-            "rag_pipeline": rag_pipeline is not None,
+            "vector_db": False,  # No longer used
+            "rag_pipeline": has_xai_config,  # Check if x.ai is configured
         },
         "bot_name": settings.bot_name,
     }
-
-    # Check if all components are initialized
-    components = dict(health_status["components"])  # type: ignore
-    if not all(components.values()):
-        health_status["status"] = "unhealthy"
 
     return health_status
 
@@ -139,12 +133,18 @@ async def health() -> dict:
 @app.get("/health")  # type: ignore
 async def health_check() -> dict:
     """Detailed health check"""
+    # Check if we have the required settings for x.ai
+    has_xai_config = bool(
+        settings.xai_api_key and settings.xai_api_key != "your-xai-api-key-here"
+    )
+
     health = {
-        "status": "healthy",
+        "status": "healthy" if has_xai_config else "unhealthy",
         "components": {
-            "vector_db": vector_db is not None,
-            "rag_pipeline": rag_pipeline is not None,
+            "vector_db": False,  # No longer used
+            "rag_pipeline": has_xai_config,  # Check if x.ai is configured
         },
+        "bot_name": settings.bot_name,
     }
 
     return health
@@ -193,7 +193,9 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -
     """
     Handle incoming webhooks from Nextcloud Talk
     """
-    logger.info("Webhook endpoint hit!")
+    if settings.verbose_logging:
+        logger.info("Webhook endpoint hit!")
+
     try:
         # Get raw request body for signature verification
         raw_body = await request.body()
@@ -207,7 +209,11 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -
 
         # Parse webhook data
         data = json.loads(raw_body.decode("utf-8"))
-        logger.info(f"Received webhook: {data}")
+        if settings.verbose_logging:
+            logger.info(f"Received webhook: {data}")
+        else:
+            logger.debug(f"Received webhook: {data}")
+            logger.info("Received webhook from Nextcloud Talk")
 
         # Parse ActivityPub webhook format from Nextcloud Talk
         if "object" in data and "content" in data["object"]:
@@ -232,7 +238,10 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -
             "Mincrafter",
             "minecraft_bot",
         ]:
-            logger.info(f"Ignoring message from bot itself: {actor_name} ({actor_id})")
+            if settings.verbose_logging:
+                logger.info(
+                    f"Ignoring message from bot itself: {actor_name} ({actor_id})"
+                )
             return {"status": "ignored - bot message"}
 
         # Check if we should respond
@@ -242,7 +251,8 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -
 
         # Clean message
         query = clean_message(message)
-        logger.info(f"Processing query: {query}")
+        if settings.verbose_logging:
+            logger.info(f"Processing query: {query}")
 
         # Send thinking message immediately
         thinking_message_id = send_thinking_message(token)
@@ -259,7 +269,8 @@ async def webhook_handler(request: Request, background_tasks: BackgroundTasks) -
 @app.post("/test-query")  # type: ignore
 async def test_query(query: str) -> dict:
     """Test endpoint for debugging (no Nextcloud required)"""
-    logger.info(f"Test query: {query}")
+    if settings.verbose_logging:
+        logger.info(f"Test query: {query}")
 
     # Query RAG
     if rag_pipeline is None:

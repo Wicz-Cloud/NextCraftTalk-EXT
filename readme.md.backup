@@ -1,0 +1,306 @@
+# 🎮 Direct x.ai Minecraft Chatbot
+
+A self-hosted chatbot that answers Minecraft questions using x.ai's Grok model directly. No local knowledge base required - relies entirely on x.ai's understanding of Minecraft. Fully integrated with Nextcloud Talk.
+
+## ✨ Features
+
+- **Direct x.ai Integration**: Uses x.ai's Grok model directly for all responses
+- **No Local Storage**: No vector database or scraped data required
+- **Kid-Friendly**: Simple language and clear steps suitable for children
+- **Cloud AI**: Leverages x.ai's powerful language model
+- **Nextcloud Talk Integration**: Responds naturally in chat conversations
+- **Fast Setup**: One-command deployment with Docker
+- **Dynamic Prompts**: Edit bot personality without container restarts
+- **Auto-Reload**: Prompt changes detected automatically via file watching
+
+## 🚀 Quick Start
+
+### 1. Deploy Everything
+
+```bash
+# Clone and deploy in one command
+git clone <your-repo> && cd mc_ai
+docker-compose up -d
+```
+
+This starts the bot container with x.ai integration and Nextcloud Talk connectivity.
+
+### 2. Configure x.ai API
+
+Get your API key from [x.ai](https://x.ai) and add it to your `.env` file:
+
+```env
+XAI_API_KEY=your-xai-api-key-here
+MODEL_NAME=grok-4-fast-non-reasoning
+```
+
+### 3. Test the Bot
+
+In any Nextcloud Talk conversation:
+
+```
+@MinecraftBot How do I craft a diamond pickaxe?
+```
+
+### 4. Control Logging Verbosity (Optional)
+
+By default, the bot logs only essential actions. For detailed logging including full messages and responses:
+
+```bash
+# Enable verbose logging
+docker-compose exec minecraft_bot python -m src.bot --verbose
+
+# Or for even more detail (debug level)
+docker-compose exec minecraft_bot python -m src.bot --verbose --debug
+```
+
+To make verbose logging permanent, update your `docker-compose.yml`:
+
+```yaml
+command: ["python", "-m", "src.bot", "--verbose"]
+```
+
+## 🎯 Usage Examples
+
+### Basic Crafting
+```
+User: How do I craft a diamond pickaxe?
+Bot: To craft a diamond pickaxe, you need:
+• 3 Diamonds
+• 2 Sticks
+
+Place the 3 diamonds across the top row of the crafting grid,
+and place 2 sticks vertically down the middle column below them.
+
+📚 Sources: Minecraft Wiki
+```
+
+### Brewing & Potions
+```
+User: What's the recipe for a brewing stand?
+Bot: To craft a brewing stand, you need:
+• 1 Blaze Rod
+• 3 Cobblestone
+
+Place the blaze rod in the center slot and the 3 cobblestone
+across the bottom row of the crafting grid.
+
+📚 Sources: Minecraft Wiki
+```
+
+### Enchanting
+```
+User: How do I enchant a sword with sharpness?
+Bot: To enchant a sword with Sharpness:
+
+1. Build an Enchanting Table (obsidian + diamonds + book)
+2. Place bookshelves around it (15 max for best enchants)
+3. Place your sword in the enchanting table
+4. Select Sharpness enchantment option
+
+📚 Sources: Minecraft Wiki
+```
+
+### Natural Conversation
+The bot responds to natural language:
+
+```
+What's the best way to find diamonds?
+How do I make a beacon?
+Tell me about golden apples
+What's the recipe for an anvil?
+```
+
+## 📋 Requirements
+
+- **Hardware**: 4GB RAM minimum, 8GB recommended
+- **Software**: Docker, Python 3.11+, Linux/macOS
+- **Network**: Internet for initial setup, Nextcloud instance
+
+## 🛠️ Configuration
+
+Edit `.env` file:
+
+```env
+# Nextcloud Settings
+NEXTCLOUD_URL=https://your-nextcloud.com
+NEXTCLOUD_BOT_TOKEN=your-bot-token-here
+
+# Docker Network (choose based on your Nextcloud setup)
+NETWORK_NAME=nextcloud-aio  # For Nextcloud AIO
+# NETWORK_NAME=bridge       # For standalone Nextcloud + nginx
+
+# Bot Settings
+BOT_NAME=MinecraftBot
+XAI_API_KEY=your-xai-api-key-here  # Get from https://x.ai
+MODEL_NAME=grok-4-fast-non-reasoning  # x.ai model
+BOT_PORT=8111              # Bot API port
+
+# Prompt Template (external file for easy editing)
+PROMPT_TEMPLATE_PATH=prompt_template.txt
+
+# Performance (adjust for your hardware)
+TOP_K_RESULTS=5
+BATCH_SIZE=50
+```
+
+### 🎭 Customizing Bot Personality
+
+The bot's personality and response style can be customized by editing `prompt_template.txt`:
+
+```bash
+# Edit the prompt template
+nano prompt_template.txt
+
+# Changes are automatically detected - no restart needed!
+# Or manually reload via API: curl -X POST http://localhost:8111/reload-prompt
+```
+
+**Template Format:**
+- `{context}` - Inserted with relevant Minecraft knowledge
+- `{query}` - The user's question
+- Everything else is your custom prompt instructions
+
+**Example:**
+```txt
+You are a fun Minecraft buddy for kids!
+
+MINECRAFT INFO:
+{context}
+
+QUESTION:
+{query}
+
+HELPFUL RESPONSE:
+- Talk like a cool friend, not a robot.
+- Keep it simple and exciting!
+- Focus on Minecraft only.
+- Show crafting recipes in grids.
+- Make it easy to follow.
+```
+
+## 🔧 Management
+
+### Docker Commands
+```bash
+# View logs
+docker-compose logs -f minecraft_bot
+
+# Restart bot
+docker-compose restart minecraft_bot
+
+# Update
+docker-compose pull && docker-compose up -d
+
+# Rebuild after code changes
+docker-compose build minecraft_bot && docker-compose up -d minecraft_bot
+```
+
+### API Endpoints
+```bash
+# Health check
+curl http://localhost:8111/health
+
+# Get statistics
+curl http://localhost:8111/stats
+
+# Clear response cache (force fresh LLM generations)
+curl -X POST http://localhost:8111/clear-cache
+
+# Manual prompt reload (if file watching fails)
+curl -X POST http://localhost:8111/reload-prompt
+
+# Test query (development)
+curl -X POST http://localhost:8111/test-query -H "Content-Type: application/json" -d '{"query": "How to craft a sword?"}'
+```
+
+### Prompt Management
+```bash
+# Edit prompt template (changes auto-detected)
+nano prompt_template.txt
+
+# View current prompt
+cat prompt_template.txt
+
+# Backup current prompt
+cp prompt_template.txt prompt_template.txt.backup
+```
+
+## 🏗️ Architecture
+
+### Components
+- **FastAPI Bot**: Handles Nextcloud webhooks and API requests
+- **Direct x.ai Pipeline**: Sends queries directly to x.ai's Grok model
+- **File Watcher**: Automatically detects prompt template changes
+
+### Data Flow
+1. User asks question in Nextcloud Talk
+2. Webhook triggers bot API
+3. Query sent directly to x.ai's Grok model
+4. x.ai generates kid-friendly Minecraft response
+5. Response sent back to Nextcloud
+
+### File Watching
+The bot uses `watchdog` library to monitor `prompt_template.txt` for changes:
+- **Automatic**: Changes detected immediately, no restart needed
+- **Manual**: API endpoint available for forced reload
+- **Fallback**: Default prompt used if file loading fails
+
+## 🐛 Troubleshooting
+
+**Bot not responding?**
+```bash
+# Check health
+curl http://localhost:8111/health
+
+# Check logs
+docker-compose logs -f minecraft_bot
+
+# Test x.ai connection (requires XAI_API_KEY in .env)
+curl -X POST http://localhost:8111/test-xai \
+  -H "Content-Type: application/json" \
+  -d '{"query": "test"}'
+```
+
+**Prompt changes not taking effect?**
+```bash
+# Check if file watcher is running (look for "👀 Started watching" in logs)
+docker-compose logs minecraft_bot | grep "watching"
+
+# Manual reload
+curl -X POST http://localhost:8111/reload-prompt
+
+# Verify prompt file exists and is mounted
+docker-compose exec minecraft_bot ls -la /app/prompt_template.txt
+```
+
+**Model not working?**
+```bash
+# Check x.ai API key is set
+grep XAI_API_KEY .env
+
+# Test x.ai API connection
+curl -H "Authorization: Bearer YOUR_API_KEY" https://api.x.ai/v1/models
+
+# Check bot logs for API errors
+docker-compose logs minecraft_bot | tail -20
+
+# Change model in .env and restart
+echo "MODEL_NAME=grok-4-fast-non-reasoning" >> .env
+docker-compose restart minecraft_bot
+```
+
+**Permission issues?**
+```bash
+# Fix file permissions
+sudo chown -R $USER:$USER /home/bill/mc_ai
+chmod 644 prompt_template.txt
+```
+
+**Container won't start?**
+```bash
+# Clean rebuild
+docker-compose down
+docker system prune -f
+docker-compose up -d --build
+```
