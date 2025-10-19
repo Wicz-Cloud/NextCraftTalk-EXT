@@ -422,7 +422,7 @@ SOFTWARE.
 
 <div align="center">
 
-**Made with ❤️ for the (parents of) Minecraft community**
+**Made with ❤️ for the NextCloud & Minecraft community**
 
 [⭐ Star us on GitHub](https://github.com/Wicz-Cloud/NextCraftTalk-EXT) • [🐛 Report Issues](https://github.com/Wicz-Cloud/NextCraftTalk-EXT/issues) • [💬 Join Discussions](https://github.com/Wicz-Cloud/NextCraftTalk-EXT/discussions)
 
