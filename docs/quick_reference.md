@@ -282,7 +282,6 @@ docker-compose restart
 
 # Reset everything (nuclear option)
 docker-compose down
-rm -rf logs
 python -m src.data.vector_db
 docker-compose up -d
 ```
